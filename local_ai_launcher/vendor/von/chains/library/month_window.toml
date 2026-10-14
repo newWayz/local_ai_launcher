@@ -1,0 +1,36 @@
+name = "month_window"
+description = "Add a number of months or years to a start date (clamping to the last day of the month when needed), then check whether a later date falls on or before that end date."
+
+[[slots]]
+name = "start"
+kind = "datetime"
+ask = "Which date does the period (warranty, term, coverage, subscription) start from?"
+
+[[slots]]
+name = "duration"
+kind = "duration"
+ask = "How long is the period, in months or years?"
+
+[[slots]]
+name = "event"
+kind = "datetime"
+ask = "Which date is the claim, event, or check that must fall inside the period?"
+
+[[steps]]
+op = "add_duration"
+args = ["start", "duration"]
+out = "period_end"
+
+[[steps]]
+op = "end_of_day"
+args = ["period_end"]
+out = "period_end_eod"
+
+[[steps]]
+op = "elapsed_days"
+args = ["period_end_eod", "event"]
+out = "days_after_end"
+
+[answer]
+mode = "ask"
+describe = "Computed: the period starts {start} and lasts {duration}, so it ends at the end of {period_end}. The event is on {event}, which is {days_after_end} days after the end of the period (a negative number means the event is inside the period)."

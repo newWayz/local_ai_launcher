@@ -1,0 +1,59 @@
+name: cpu-llama-server
+backend: llama-cpp
+context_size: 65536
+gpu_layers: 0
+parameters:
+  threads: 4
+  threads_batch: 16
+  batch_size: 4096
+  ubatch_size: 4096
+  flash_attn: 'on'
+  cache_reuse: 256
+  ctk: q8_0
+  ctv: q8_0
+  mmproj: models/llama-server/HauhauCS/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced/mmproj-Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced-BF16.gguf
+  jinja: true
+  parallel: 1
+  model: models/llama-server/HauhauCS/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced-Q4_K_M.gguf
+sampling:
+  temperature: 0.8
+  top_p: 0.95
+  top_k: 64
+  min_p: 0.05
+  presence_penalty: 0.0
+reasoning:
+  budget_tokens: 0
+engine_args:
+  host: 127.0.0.1
+  port: '9931'
+  flash-attn: 'on'
+  jinja: 'on'
+  ngl: '0'
+  cache-reuse: '256'
+  ctk: q8_0
+  ctv: q8_0
+  parallel: '1'
+  load-mode: none
+  no-webui: 'True'
+  fit: 'off'
+  threads: '4'
+  threads-batch: '16'
+  image-min-tokens: '1024'
+  image-max-tokens: '4096'
+  batch-size: '4096'
+  ubatch-size: '4096'
+  presence-penalty: '0.0'
+  dry-multiplier: '0.0'
+  dry-base: '1.75'
+  dry-allowed-length: '2'
+  dry-penalty-last-n: '4096'
+  reasoning-budget: '0'
+  model: models/llama-server/HauhauCS/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced-Q4_K_M.gguf
+  mmproj: models/llama-server/HauhauCS/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced/mmproj-Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced-BF16.gguf
+  alias: gemma-4-12b-director, cpu-llama-server
+  ctx-size: '65536'
+  temp: '0.8'
+  top-p: '0.95'
+  top-k: '64'
+  min-p: '0.05'
+mmap: false

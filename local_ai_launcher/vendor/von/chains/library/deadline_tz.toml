@@ -1,0 +1,49 @@
+name = "deadline_tz"
+description = "Add a duration to a start date/time to get a deadline, put the deadline and the event in the same time zone, then compare the event to the deadline."
+
+[[slots]]
+name = "start"
+kind = "datetime"
+ask = "From which date and time does the window or period start counting?"
+prefer = "with_time"
+
+[[slots]]
+name = "duration"
+kind = "duration"
+ask = "How long is the window or period that is added to the start?"
+
+[[slots]]
+name = "event"
+kind = "datetime"
+ask = "Which date and time is the event whose timeliness is being checked?"
+prefer = "with_time"
+
+[[slots]]
+name = "zone"
+kind = "timezone"
+ask = "Which time zone governs the comparison?"
+optional = true
+
+[[steps]]
+op = "add_duration"
+args = ["start", "duration"]
+out = "deadline"
+
+[[steps]]
+op = "in_zone"
+args = ["deadline", "zone"]
+out = "deadline_z"
+
+[[steps]]
+op = "in_zone"
+args = ["event", "zone"]
+out = "event_z"
+
+[[steps]]
+op = "elapsed_hours"
+args = ["deadline_z", "event_z"]
+out = "hours_after_deadline"
+
+[answer]
+mode = "ask"
+describe = "Computed: the window starts {start} and lasts {duration}, so the deadline is {deadline_z}. The event is at {event_z}, which is {hours_after_deadline} hours after the deadline (a negative number means the event came before the deadline)."

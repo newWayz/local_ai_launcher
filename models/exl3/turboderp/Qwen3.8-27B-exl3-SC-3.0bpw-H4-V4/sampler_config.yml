@@ -1,0 +1,12 @@
+temperature:
+  override: 0.6
+top_p:
+  override: 0.95
+top_k:
+  override: 20
+min_p:
+  override: 0.05
+presence_penalty:
+  override: 0.0
+repetition_penalty:
+  override: 1.0

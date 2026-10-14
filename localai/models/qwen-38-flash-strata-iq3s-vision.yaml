@@ -1,0 +1,48 @@
+name: qwen-38-flash-strata-iq3s-vision
+backend: strata
+context_size: 262144
+gpu_layers: -1
+parameters:
+  mmap_experts: true
+  mtp: models/llama-server/SC117/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF/strata/rt
+  mmproj: models/llama-server/SC117/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF/mmproj-Qwen3.8-Flash-Next-BF16.gguf
+  chat_template_file: models/chat_template_qwen38_sharp_v22.4.0_medium-convergent.jinja
+  jinja: true
+  model: models/llama-server/SC117/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-IQ3_S-00001-of-00002.gguf
+sampling:
+  temperature: 0.6
+  top_p: 0.95
+  top_k: 20
+  min_p: 0.05
+  presence_penalty: 0.0
+  repetition_penalty: 1.0
+reasoning:
+  enabled: true
+  format: deepseek
+  preserve: true
+  budget_tokens: 16384
+  budget_message: Wait, I'm overthinking this. Let's answer now.
+engine_args:
+  model: models/llama-server/SC117/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-IQ3_S-00001-of-00002.gguf
+  mmproj: models/llama-server/SC117/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF/mmproj-Qwen3.8-Flash-Next-BF16.gguf
+  mtp: models/llama-server/SC117/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF/strata/rt
+  aliases:
+  - qwen-38-flash-strata-iq3s-vision
+  - strata-iq3s-vision
+  - strata-vision
+  ctx_size: 262144
+  jinja: true
+  chat_template_file: models/chat_template_qwen38_sharp_v22.4.0_medium-convergent.jinja
+  sampling:
+    temperature: 0.6
+    top_p: 0.95
+    top_k: 20
+    min_p: 0.05
+    presence_penalty: 0.0
+    repetition_penalty: 1.0
+  reasoning:
+    enabled: true
+    format: deepseek
+    preserve: true
+    budget_tokens: 16384
+    budget_message: Wait, I'm overthinking this. Let's answer now.

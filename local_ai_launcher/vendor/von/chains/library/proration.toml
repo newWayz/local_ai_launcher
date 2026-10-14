@@ -1,0 +1,37 @@
+name = "proration"
+description = "Prorate an annual or total amount by a count of days (inclusive of both ends) over the days in the year or period."
+
+[[slots]]
+name = "amount"
+kind = "number"
+ask = "Which amount is the full-period (annual or total) amount that gets prorated?"
+
+[[slots]]
+name = "from"
+kind = "datetime"
+ask = "Which date does the active or counted period start on?"
+
+[[slots]]
+name = "to"
+kind = "datetime"
+ask = "Which date does the active or counted period end on?"
+
+[[steps]]
+op = "days_inclusive"
+args = ["from", "to"]
+out = "active_days"
+
+[[steps]]
+op = "days_in_year"
+args = ["from"]
+out = "year_days"
+
+[[steps]]
+op = "prorate"
+args = ["amount", "active_days", "year_days"]
+out = "prorated"
+
+[answer]
+mode = "value"
+value = "prorated"
+describe = "Computed: {active_days} active days inclusive from {from} to {to}, out of {year_days} days in the year; {amount} prorated by that fraction is {prorated}."

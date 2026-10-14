@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2064.794 770.1" width="2064.794" height="770.1" style="--bg:#1F1F1F;--fg:#CCCCCC;--line:#CCCCCC;--accent:#0078D4;--muted:#CCCCCCCC;--surface:#181818;--border:#CCCCCC;background:var(--bg)">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+  text { font-family: 'Inter', system-ui, sans-serif; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 85%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+  <marker id="arrowhead" markerWidth="8" markerHeight="5" refX="7" refY="2.5" orient="auto">
+    <polygon points="0 0, 8 2.5, 0 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+  <marker id="arrowhead-start" markerWidth="8" markerHeight="5" refX="1" refY="2.5" orient="auto-start-reverse">
+    <polygon points="8 0, 0 2.5, 8 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+</defs>
+<g class="subgraph" data-id="Engines" data-label="The 4 Dedicated Inference Engines">
+  <rect x="40" y="556.3000000000001" width="1984.7939999999996" height="173.8" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="40" y="556.3000000000001" width="1984.7939999999996" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="52" y="570.3000000000001" font-size="12" font-weight="600" fill="var(--_text-sec)" dy="4.199999999999999">The 4 Dedicated Inference Engines</text>
+<g class="subgraph" data-id="LlamaCpp" data-label="1. llama-cpp Engine Family (Port 9932)">
+  <rect x="56" y="600.3000000000001" width="969.6699999999998" height="113.80000000000001" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="56" y="600.3000000000001" width="969.6699999999998" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="68" y="614.3000000000001" font-size="12" font-weight="600" fill="var(--_text-sec)" dy="4.199999999999999">1. llama-cpp Engine Family (Port 9932)</text>
+</g>
+<g class="subgraph" data-id="EXL3" data-label="2. exl3 Engine (Port 9936)">
+  <rect x="1053.6699999999998" y="600.3000000000001" width="278.46599999999995" height="113.80000000000001" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="1053.6699999999998" y="600.3000000000001" width="278.46599999999995" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1065.6699999999998" y="614.3000000000001" font-size="12" font-weight="600" fill="var(--_text-sec)" dy="4.199999999999999">2. exl3 Engine (Port 9936)</text>
+</g>
+<g class="subgraph" data-id="FreeToken" data-label="3. freetoken Engine (Port 9937)">
+  <rect x="1360.1359999999997" y="600.3000000000001" width="296.991" height="113.80000000000001" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="1360.1359999999997" y="600.3000000000001" width="296.991" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1372.1359999999997" y="614.3000000000001" font-size="12" font-weight="600" fill="var(--_text-sec)" dy="4.199999999999999">3. freetoken Engine (Port 9937)</text>
+</g>
+<g class="subgraph" data-id="StrataEngine" data-label="4. strata Engine (Port 9943)">
+  <rect x="1685.1269999999997" y="600.3000000000001" width="323.667" height="113.80000000000001" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="1685.1269999999997" y="600.3000000000001" width="323.667" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1697.1269999999997" y="614.3000000000001" font-size="12" font-weight="600" fill="var(--_text-sec)" dy="4.199999999999999">4. strata Engine (Port 9943)</text>
+</g>
+</g>
+<polyline class="edge" data-from="Client" data-to="Gateway" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="OpenAI-compatible HTTP" points="1350.7672499999996,93.80000000000001 1350.7672499999999,210.1" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Gateway" data-to="VRAMCoord" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Guarded by asyncio.Lock" points="1350.7672499999999,263.90000000000003 1350.7672499999999,380.20000000000005" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="VRAMCoord" data-to="LlamaCpp" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="GGUF models" points="1259.9326499999997,434.00000000000006 1259.9326499999997,458.00000000000006 825.2649999999998,458.00000000000006 825.2649999999998,538.3000000000001 540.8349999999998,538.3000000000001 540.8349999999999,600.3000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="VRAMCoord" data-to="EXL3" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="models/exl3/" points="1320.4890499999997,434.00000000000006 1320.4890499999997,470.00000000000006 1192.9029999999998,470.00000000000006 1192.9029999999998,600.3000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="VRAMCoord" data-to="FreeToken" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="models/freetoken/" points="1381.0454499999996,434.00000000000006 1381.0454499999996,470.00000000000006 1508.6314999999995,470.00000000000006 1508.6314999999997,600.3000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="VRAMCoord" data-to="StrataEngine" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="models/strata/" points="1441.6018499999998,434.00000000000006 1441.6018499999998,458.00000000000006 1726.5449999999996,458.00000000000006 1726.5449999999996,538.3000000000001 1846.9604999999997,538.3000000000001 1846.9604999999997,600.3000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<g class="edge-label" data-from="Client" data-to="Gateway" data-label="OpenAI-compatible HTTP">
+  <rect x="1282.7672499999999" y="136.8" width="135.262" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1350.39825" y="151.95000000000002" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">OpenAI-compatible HTTP</text>
+</g>
+<g class="edge-label" data-from="Gateway" data-to="VRAMCoord" data-label="Guarded by asyncio.Lock">
+  <rect x="1280.2672499999999" y="306.90000000000003" width="140.014" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1350.27425" y="322.05" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Guarded by asyncio.Lock</text>
+</g>
+<g class="edge-label" data-from="VRAMCoord" data-to="LlamaCpp" data-label="GGUF models">
+  <rect x="784.2649999999998" y="477.00000000000006" width="81.20800000000001" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="824.8689999999998" y="492.15000000000003" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">GGUF models</text>
+</g>
+<g class="edge-label" data-from="VRAMCoord" data-to="EXL3" data-label="models/exl3/">
+  <rect x="1153.9029999999998" y="477.00000000000006" width="77.05000000000001" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1192.4279999999999" y="492.15000000000003" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">models/exl3/</text>
+</g>
+<g class="edge-label" data-from="VRAMCoord" data-to="FreeToken" data-label="models/freetoken/">
+  <rect x="1457.6314999999995" y="477.00000000000006" width="101.99800000000002" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1508.6304999999995" y="492.15000000000003" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">models/freetoken/</text>
+</g>
+<g class="edge-label" data-from="VRAMCoord" data-to="StrataEngine" data-label="models/strata/">
+  <rect x="1684.0449999999996" y="477.00000000000006" width="84.17800000000003" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1726.1339999999996" y="492.15000000000003" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">models/strata/</text>
+</g>
+<g class="node" data-id="Client" data-label="Client Harnesses
+(Pi, Hermes, OpenLumara, Agy IDE, Web UI)" data-shape="rectangle">
+  <rect x="1204.9337499999997" y="40" width="291.6669999999999" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1350.7672499999996" y="66.9" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="1350.7672499999996" dy="-3.9000000000000012">Client Harnesses</tspan><tspan x="1350.7672499999996" dy="16.900000000000002">(Pi, Hermes, OpenLumara, Agy IDE, Web UI)</tspan></text>
+</g>
+<g class="node" data-id="Gateway" data-label="LocalAI / Native Server Gateway
+(localhost:8080)" data-shape="rectangle">
+  <rect x="1235.3147499999998" y="210.1" width="230.90499999999997" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1350.7672499999999" y="237" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="1350.7672499999999" dy="-3.9000000000000012">LocalAI / Native Server Gateway</tspan><tspan x="1350.7672499999999" dy="16.900000000000002">(localhost:8080)</tspan></text>
+</g>
+<g class="node" data-id="VRAMCoord" data-label="VRAM Coordinator &amp; Single-Active Policy
+(Atomic Mutual Exclusion &amp; Diffusion Eviction)" data-shape="rectangle">
+  <rect x="1199.3762499999998" y="380.20000000000005" width="302.7819999999999" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1350.7672499999999" y="407.1" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="1350.7672499999999" dy="-3.9000000000000012">VRAM Coordinator &amp; Single-Active Policy</tspan><tspan x="1350.7672499999999" dy="16.900000000000002">(Atomic Mutual Exclusion &amp; Diffusion Eviction)</tspan></text>
+</g>
+<g class="node" data-id="BrunoFork" data-label="Bruno Passini Fork
+(Qwen/Huihui 27B UD-IQ4_XS base)" data-shape="rectangle">
+  <rect x="448.72399999999993" y="644.3000000000001" width="248.68899999999996" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="573.0684999999999" y="671.2" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="573.0684999999999" dy="-3.9000000000000012">Bruno Passini Fork</tspan><tspan x="573.0684999999999" dy="16.900000000000002">(Qwen/Huihui 27B UD-IQ4_XS base)</tspan></text>
+</g>
+<g class="node" data-id="HuangFork" data-label="Raymond Huang Adaptive-KV
+(&gt; 62% VRAM, 100% GPU, streaming arena)" data-shape="rectangle">
+  <rect x="725.4129999999999" y="644.3000000000001" width="284.25699999999995" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="867.5414999999998" y="671.2" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="867.5414999999998" dy="-3.9000000000000012">Raymond Huang Adaptive-KV</tspan><tspan x="867.5414999999998" dy="16.900000000000002">(&gt; 62% VRAM, 100% GPU, streaming arena)</tspan></text>
+</g>
+<g class="node" data-id="OfficialLlama" data-label="Official llama-server.exe
+(The others: Qwen 3.6 35B MoE, Gemma 12B, Tiel 35B)" data-shape="rectangle">
+  <rect x="72" y="644.3000000000001" width="348.72399999999993" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="246.36199999999997" y="671.2" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="246.36199999999997" dy="-3.9000000000000012">Official llama-server.exe</tspan><tspan x="246.36199999999997" dy="16.900000000000002">(The others: Qwen 3.6 35B MoE, Gemma 12B, Tiel 35B)</tspan></text>
+</g>
+<g class="node" data-id="Tabby" data-label="TabbyAPI + ExLlamaV3
+(Native EXL3 4/6/8-bit Safetensors)" data-shape="rectangle">
+  <rect x="1069.6699999999998" y="644.3000000000001" width="246.46599999999995" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1192.9029999999998" y="671.2" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="1192.9029999999998" dy="-3.9000000000000012">TabbyAPI + ExLlamaV3</tspan><tspan x="1192.9029999999998" dy="16.900000000000002">(Native EXL3 4/6/8-bit Safetensors)</tspan></text>
+</g>
+<g class="node" data-id="NVFP4" data-label="FreeToken NVFP4 Runtime
+(Native FP4 on Blackwell/Ada/Hopper)" data-shape="rectangle">
+  <rect x="1376.1359999999997" y="644.3000000000001" width="264.991" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1508.6314999999997" y="671.2" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="1508.6314999999997" dy="-3.9000000000000012">FreeToken NVFP4 Runtime</tspan><tspan x="1508.6314999999997" dy="16.900000000000002">(Native FP4 on Blackwell/Ada/Hopper)</tspan></text>
+</g>
+<g class="node" data-id="Strata" data-label="Strata Engine (strata.exe)
+(Extreme quant IQ3_S &amp; sparse activations)" data-shape="rectangle">
+  <rect x="1701.1269999999997" y="644.3000000000001" width="291.667" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1846.9604999999997" y="671.2" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="1846.9604999999997" dy="-3.9000000000000012">Strata Engine (strata.exe)</tspan><tspan x="1846.9604999999997" dy="16.900000000000002">(Extreme quant IQ3_S &amp; sparse activations)</tspan></text>
+</g>
+</svg>

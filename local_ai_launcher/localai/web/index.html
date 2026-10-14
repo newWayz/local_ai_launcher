@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocalAI Unified Web GUI</title>
+  <link rel="shortcut icon" href="/static/favicon.svg" type="image/svg">
+  
+  <!-- LocalAI Design System CSS -->
+  <link rel="stylesheet" href="/static/theme.css">
+  <link rel="stylesheet" href="/static/typography.css">
+  <link rel="stylesheet" href="/static/animations.css">
+  <link rel="stylesheet" href="/static/components.css">
+  <link rel="stylesheet" href="/static/general.css">
+  
+  <!-- FontAwesome & Code Highlighting -->
+  <link rel="stylesheet" href="/static/assets/fontawesome/css/fontawesome.css">
+  <link rel="stylesheet" href="/static/assets/fontawesome/css/solid.css">
+  <link rel="stylesheet" href="/static/assets/fontawesome/css/brands.css">
+  <link rel="stylesheet" href="/static/assets/highlightjs.css">
+  
+  <script src="/static/assets/marked.js"></script>
+  <script src="/static/assets/purify.js"></script>
+  <script src="/static/assets/highlightjs.js"></script>
+  
+  <style>
+    :root {
+      --bg-main: #0f1117;
+      --bg-surface: #181b24;
+      --bg-sidebar: #13161f;
+      --bg-input: #202430;
+      --border-color: #2b3042;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --color-primary: #3b82f6;
+      --color-primary-hover: #2563eb;
+      --color-success: #10b981;
+      --color-warning: #f59e0b;
+      --color-danger: #ef4444;
+      --card-bg: #1e2230;
+    }
+    
+    [data-theme="light"] {
+      --bg-main: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-sidebar: #f1f5f9;
+      --bg-input: #ffffff;
+      --border-color: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --color-primary: #2563eb;
+      --color-primary-hover: #1d4ed8;
+      --color-success: #059669;
+      --color-warning: #d97706;
+      --color-danger: #dc2626;
+      --card-bg: #ffffff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.6rem 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      z-index: 20;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+    }
+
+    .logo-img {
+      height: 32px;
+      width: auto;
+      display: block;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .nav-tab {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.45rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+    }
+
+    .nav-tab:hover {
+      color: var(--text-main);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .nav-tab.active {
+      color: #fff;
+      background: var(--color-primary);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .vram-badge {
+      font-size: 0.8rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 20px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--color-success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 600;
+    }
+
+    .model-selector-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    select.model-select {
+      background: var(--bg-input);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.85rem;
+      max-width: 260px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .btn-action {
+      background: var(--bg-input);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s;
+    }
+    .btn-action:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--color-danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .btn-danger:hover {
+      background: var(--color-danger);
+      color: #fff;
+    }
+
+    .main-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* CHAT VIEW */
+    .chat-view {
+      flex: 1;
+      display: flex;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .chat-sidebar {
+      width: 280px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .sidebar-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .param-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .param-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--color-primary);
+    }
+
+    textarea.sys-prompt {
+      width: 100%;
+      height: 80px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-main);
+      padding: 0.5rem;
+      font-size: 0.8rem;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    .chat-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: var(--bg-main);
+      position: relative;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    .welcome-card {
+      margin: auto;
+      max-width: 600px;
+      text-align: center;
+      padding: 2.5rem 2rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+    }
+    .welcome-card h2 {
+      margin-bottom: 0.5rem;
+      font-size: 1.5rem;
+    }
+    .welcome-card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+    }
+    .quick-chips {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .chip {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      padding: 0.4rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .chip:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .message {
+      display: flex;
+      gap: 1rem;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .message-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+
+    .avatar-user {
+      background: #3b82f6;
+      color: #fff;
+    }
+
+    .avatar-ai {
+      background: #10b981;
+      color: #fff;
+    }
+
+    .message-bubble {
+      flex: 1;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 0.9rem 1.2rem;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    .message.user .message-bubble {
+      background: rgba(59, 130, 246, 0.08);
+      border-color: rgba(59, 130, 246, 0.25);
+    }
+
+    .message-bubble pre {
+      background: #090b10;
+      border-radius: 6px;
+      padding: 0.8rem;
+      margin: 0.6rem 0;
+      overflow-x: auto;
+      border: 1px solid var(--border-color);
+      position: relative;
+    }
+
+    .message-bubble code {
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-size: 0.88rem;
+    }
+
+    .chat-input-area {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-color);
+      padding: 1rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-width: 950px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .input-box-wrapper {
+      display: flex;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 0.5rem 0.8rem;
+      align-items: flex-end;
+      gap: 0.5rem;
+      transition: border-color 0.2s;
+    }
+    .input-box-wrapper:focus-within {
+      border-color: var(--color-primary);
+    }
+
+    textarea#prompt-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: none;
+      max-height: 180px;
+      min-height: 24px;
+      line-height: 1.4;
+    }
+
+    .btn-send {
+      background: var(--color-primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-send:hover {
+      background: var(--color-primary-hover);
+    }
+
+    .btn-stop {
+      background: var(--color-danger);
+    }
+
+    .input-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
+    /* MODELS & BACKENDS PANELS */
+    .panel-view {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+      display: none;
+    }
+
+    .panel-view.active {
+      display: block;
+    }
+
+    .grid-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.2rem;
+      margin-top: 1rem;
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-main);
+      word-break: break-all;
+    }
+
+    .badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-blackwell { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+    .badge-exl3 { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+    .badge-nvfp4 { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .badge-active { background: rgba(16, 185, 129, 0.25); color: #10b981; border: 1px solid #10b981; }
+
+    .vram-progress {
+      width: 100%;
+      height: 10px;
+      background: var(--bg-input);
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+      border: 1px solid var(--border-color);
+    }
+    .vram-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    .search-box {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      color: var(--text-main);
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .search-box:focus {
+      border-color: var(--color-primary);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="header-left">
+      <img src="/static/logo_horizontal.png" alt="LocalAI" class="logo-img">
+      <nav class="nav-tabs">
+        <button class="nav-tab active" onclick="switchView('chat')">
+          <i class="fas fa-comments"></i> Chat
+        </button>
+        <button class="nav-tab" onclick="switchView('models')">
+          <i class="fas fa-cubes"></i> Models Catalog
+        </button>
+        <button class="nav-tab" onclick="switchView('backends')">
+          <i class="fas fa-server"></i> Backends & VRAM
+        </button>
+        <button class="nav-tab" onclick="window.open('/docs', '_blank')">
+          <i class="fas fa-book"></i> API Docs
+        </button>
+      </nav>
+    </div>
+
+    <div class="header-right">
+      <div class="model-selector-container">
+        <select id="header-model-select" class="model-select" onchange="onModelSelectChange(this.value)">
+          <option value="">Loading models...</option>
+        </select>
+      </div>
+      <div id="vram-badge" class="vram-badge">
+        <i class="fas fa-microchip"></i>
+        <span id="vram-text">VRAM: Checking...</span>
+      </div>
+      <button class="btn-action" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+        <i class="fas fa-moon" id="theme-icon"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <div class="main-container">
+    
+    <!-- 1. CHAT VIEW -->
+    <div id="view-chat" class="chat-view">
+      <aside class="chat-sidebar">
+        <div class="sidebar-section">
+          <div class="sidebar-title">Active Engine</div>
+          <div id="active-engine-card" style="font-size: 0.85rem; background: var(--bg-surface); padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color);">
+            <div><strong>Backend:</strong> <span id="sb-backend" style="color: var(--color-primary);">Auto</span></div>
+            <div><strong>Active Model:</strong> <span id="sb-model" style="word-break: break-all;">None</span></div>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-title">System Prompt</div>
+          <textarea id="sys-prompt" class="sys-prompt" placeholder="You are a helpful coding and problem-solving AI assistant."></textarea>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-title">Parameters</div>
+          <div class="param-group">
+            <div class="param-label">
+              <span>Temperature</span>
+              <span id="temp-val">0.7</span>
+            </div>
+            <input type="range" id="temp-slider" min="0" max="1.5" step="0.05" value="0.7" oninput="document.getElementById('temp-val').innerText = this.value">
+          </div>
+          <div class="param-group">
+            <div class="param-label">
+              <span>Top-P</span>
+              <span id="topp-val">0.95</span>
+            </div>
+            <input type="range" id="topp-slider" min="0.1" max="1.0" step="0.05" value="0.95" oninput="document.getElementById('topp-val').innerText = this.value">
+          </div>
+          <div class="param-group">
+            <div class="param-label">
+              <span>Max Tokens</span>
+              <span id="max-tokens-val">4096</span>
+            </div>
+            <input type="range" id="max-tokens-slider" min="256" max="16384" step="256" value="4096" oninput="document.getElementById('max-tokens-val').innerText = this.value">
+          </div>
+        </div>
+
+        <div class="sidebar-section" style="margin-top: auto;">
+          <button class="btn-action btn-danger" onclick="evictVRAM()" style="width: 100%; justify-content: center;">
+            <i class="fas fa-trash-can"></i> Evict LLM from VRAM
+          </button>
+          <button class="btn-action" onclick="clearChat()" style="width: 100%; justify-content: center;">
+            <i class="fas fa-broom"></i> Clear Conversation
+          </button>
+        </div>
+      </aside>
+
+      <section class="chat-content">
+        <div id="chat-messages" class="chat-messages">
+          <div class="welcome-card" id="welcome-card">
+            <i class="fas fa-robot" style="font-size: 2.5rem; color: var(--color-primary); margin-bottom: 1rem;"></i>
+            <h2>LocalAI Unified Cockpit</h2>
+            <p>Direct inference engine connected to your RTX 5080 Laptop GPU. Seamlessly switch between Blackwell GGUF (36 hybrid-KV vars), TabbyAPI (EXL3), and FreeToken (NVFP4) with automatic VRAM mutual exclusion.</p>
+            <div class="quick-chips">
+              <div class="chip" onclick="quickPrompt('Explain the architecture of LocalAI gRPC shims.')">Explain LocalAI gRPC shims</div>
+              <div class="chip" onclick="quickPrompt('Write a clean Python async pipeline using FastAPI.')">Write FastAPI async pipeline</div>
+              <div class="chip" onclick="quickPrompt('Check current VRAM status and active backend.')">Check VRAM status</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-input-area">
+          <div class="input-box-wrapper">
+            <textarea id="prompt-input" rows="1" placeholder="Type a message or question... (Enter to send, Shift+Enter for newline)" onkeydown="handleInputKey(event)"></textarea>
+            <button id="send-btn" class="btn-send" onclick="sendMessage()">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+          <div class="input-hint">LocalAI v1 API | Single Active Backend VRAM Guard Active</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 2. MODELS CATALOG VIEW -->
+    <div id="view-models" class="panel-view">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div>
+          <h2>Models Catalog</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Auto-configured from models.ini, freetokens_models.ini, and models/exl3</p>
+        </div>
+        <div style="width: 300px;">
+          <input type="text" id="model-search" class="search-box" placeholder="Filter models..." oninput="filterModels(this.value)">
+        </div>
+      </div>
+      <div id="models-grid" class="grid-cards"></div>
+    </div>
+
+    <!-- 3. BACKENDS & VRAM VIEW -->
+    <div id="view-backends" class="panel-view">
+      <h2>Backends & GPU Memory Manager</h2>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">RTX 5080 Laptop (16GB VRAM) mutual exclusion and ComfyUI / Gate 2/3 coordination</p>
+
+      <!-- VRAM Card -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <div>
+            <div class="card-title"><i class="fas fa-memory"></i> VRAM Allocation Status</div>
+            <div id="vram-detail-text" style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.3rem;">Allocated: 0 MB / Free: 16,000 MB / Total: 16,303 MB</div>
+          </div>
+          <button class="btn-action btn-danger" onclick="evictVRAM()">
+            <i class="fas fa-bolt"></i> Evict All LLM Engines from VRAM
+          </button>
+        </div>
+        <div class="vram-progress">
+          <div id="vram-bar-fill" class="vram-progress-fill"></div>
+        </div>
+      </div>
+
+      <!-- Backends Cards Grid -->
+      <div class="grid-cards">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Blackwell Llama-Server</div>
+            <span id="badge-blackwell-status" class="badge badge-blackwell">Port 9940</span>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">Custom RTX 5080 sm_120 build with 36 hybrid-KV runtime variables. Handles 256K context GGUF models in 16GB VRAM.</p>
+          <div style="font-size: 0.8rem; margin-top: auto;"><strong>Protocol:</strong> LocalAI gRPC Shim (SSE Streaming)</div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">TabbyAPI (EXL3)</div>
+            <span id="badge-tabby-status" class="badge badge-exl3">Port 9941</span>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">High-throughput EXL3 inference engine. Automatically enforces the 256-multiple sequence length requirement.</p>
+          <div style="font-size: 0.8rem; margin-top: auto;"><strong>Protocol:</strong> LocalAI gRPC Shim</div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">FreeToken (NVFP4)</div>
+            <span id="badge-ft-status" class="badge badge-nvfp4">Port 9942</span>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">NVIDIA NVFP4 4-bit floating point engine with PyTorch 2.11 + CUDA 13 and Windows platform hotfixes.</p>
+          <div style="font-size: 0.8rem; margin-top: auto;"><strong>Protocol:</strong> LocalAI gRPC Shim</div>
+        </div>
+      </div>
+
+      <!-- Ecosystem Integration Ports -->
+      <h3 style="margin-top: 2rem; margin-bottom: 0.8rem;">Local Ecosystem Endpoints</h3>
+      <div class="card">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border-color); text-align: left;">
+              <th style="padding: 0.5rem;">Service</th>
+              <th style="padding: 0.5rem;">Port</th>
+              <th style="padding: 0.5rem;">Description</th>
+              <th style="padding: 0.5rem;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid var(--border-color);">
+              <td style="padding: 0.5rem;"><strong>LocalAI Engine</strong></td>
+              <td style="padding: 0.5rem;"><code>8080</code></td>
+              <td style="padding: 0.5rem;">Unified OpenAI API router & process supervisor</td>
+              <td style="padding: 0.5rem; color: var(--color-success);"><i class="fas fa-circle-check"></i> Active</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border-color);">
+              <td style="padding: 0.5rem;"><strong>Parakeet TDT V3</strong></td>
+              <td style="padding: 0.5rem;"><code>8000</code></td>
+              <td style="padding: 0.5rem;">Intel NPU Voice Dictation REST endpoint</td>
+              <td style="padding: 0.5rem; color: var(--color-success);"><i class="fas fa-circle-check"></i> Active</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border-color);">
+              <td style="padding: 0.5rem;"><strong>OmniRoute Proxy</strong></td>
+              <td style="padding: 0.5rem;"><code>20128</code></td>
+              <td style="padding: 0.5rem;">Harness context compaction proxy</td>
+              <td style="padding: 0.5rem; color: var(--color-muted);"><i class="fas fa-circle-info"></i> Ready</td>
+            </tr>
+            <tr>
+              <td style="padding: 0.5rem;"><strong>MCP Proxy Server</strong></td>
+              <td style="padding: 0.5rem;"><code>9932</code></td>
+              <td style="padding: 0.5rem;">LLM + Audio Model Context Protocol Server</td>
+              <td style="padding: 0.5rem; color: var(--color-muted);"><i class="fas fa-circle-info"></i> Ready</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let allModels = [];
+    let activeModelName = "";
+    let isGenerating = false;
+    let currentAbortController = null;
+    let chatHistory = [];
+
+    // Navigation Tabs
+    function switchView(viewName) {
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel-view').forEach(p => p.classList.remove('active'));
+      document.getElementById('view-chat').style.display = 'none';
+
+      if (viewName === 'chat') {
+        document.getElementById('view-chat').style.display = 'flex';
+        document.querySelector('.nav-tab:nth-child(1)').classList.add('active');
+      } else if (viewName === 'models') {
+        document.getElementById('view-models').classList.add('active');
+        document.querySelector('.nav-tab:nth-child(2)').classList.add('active');
+      } else if (viewName === 'backends') {
+        document.getElementById('view-backends').classList.add('active');
+        document.querySelector('.nav-tab:nth-child(3)').classList.add('active');
+      }
+    }
+
+    // Theme Toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      if (next === 'dark') html.classList.add('dark'); else html.classList.remove('dark');
+      document.getElementById('theme-icon').className = next === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+      localStorage.setItem('localai-theme', next);
+    }
+
+    // Fetch Models & Populate Selectors
+    async function loadModels() {
+      try {
+        const res = await fetch('/api/models/details');
+        const data = await res.json();
+        allModels = data.models || [];
+        activeModelName = data.active_model || (allModels[0] ? allModels[0].id : "");
+
+        const select = document.getElementById('header-model-select');
+        select.innerHTML = '';
+        allModels.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.innerText = m.id;
+          if (m.id === activeModelName) opt.selected = true;
+          select.appendChild(opt);
+        });
+
+        updateSidebarModelInfo();
+        renderModelsGrid(allModels);
+      } catch (err) {
+        console.error("Failed to load models:", err);
+      }
+    }
+
+    function updateSidebarModelInfo() {
+      const select = document.getElementById('header-model-select');
+      const selected = select.value || activeModelName;
+      document.getElementById('sb-model').innerText = selected || "None";
+      const found = allModels.find(m => m.id === selected);
+      document.getElementById('sb-backend').innerText = found ? found.backend : "Auto";
+    }
+
+    function onModelSelectChange(modelId) {
+      activeModelName = modelId;
+      updateSidebarModelInfo();
+    }
+
+    function filterModels(query) {
+      const q = query.toLowerCase().trim();
+      const filtered = allModels.filter(m => m.id.toLowerCase().includes(q) || m.backend.toLowerCase().includes(q));
+      renderModelsGrid(filtered);
+    }
+
+    function renderModelsGrid(models) {
+      const grid = document.getElementById('models-grid');
+      grid.innerHTML = '';
+      models.forEach(m => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        
+        let badgeClass = 'badge-blackwell';
+        if (m.backend.includes('exl3') || m.backend.includes('tabby')) badgeClass = 'badge-exl3';
+        if (m.backend.includes('nvfp4') || m.backend.includes('freetoken')) badgeClass = 'badge-nvfp4';
+        
+        const isActive = (m.id === activeModelName);
+
+        card.innerHTML = `
+          <div class="card-header">
+            <div class="card-title">${m.id}</div>
+            <span class="badge ${badgeClass}">${m.backend}</span>
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); word-break: break-all;">
+            <strong>Target:</strong> ${m.model_path}
+          </div>
+          <div style="margin-top: auto; display: flex; justify-content: space-between; align-items: center;">
+            ${isActive ? '<span class="badge badge-active"><i class="fas fa-check"></i> Loaded</span>' : '<span></span>'}
+            <button class="btn-action" onclick="switchAndLoadModel('${m.id}')">
+              <i class="fas fa-play"></i> ${isActive ? 'Chat' : 'Switch & Load'}
+            </button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    async function switchAndLoadModel(modelId) {
+      activeModelName = modelId;
+      document.getElementById('header-model-select').value = modelId;
+      updateSidebarModelInfo();
+      switchView('chat');
+      
+      // Notify user
+      appendSystemNotice(`Switching active engine to <strong>${modelId}</strong>... Single Active Backend is preparing VRAM.`);
+      try {
+        await fetch('/backend/load', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: modelId })
+        });
+        appendSystemNotice(`Engine <strong>${modelId}</strong> ready in VRAM.`);
+        refreshVRAM();
+      } catch (err) {
+        console.error("Load model error:", err);
+      }
+    }
+
+    // Refresh VRAM
+    async function refreshVRAM() {
+      try {
+        const res = await fetch('/api/vram');
+        const data = await res.json();
+        const total = data.total_mb || 16303;
+        const free = data.free_mb || 0;
+        const allocated = total - free;
+        const pct = Math.min(100, Math.max(0, (allocated / total) * 100));
+
+        document.getElementById('vram-text').innerText = `GPU VRAM: ${(free / 1024).toFixed(1)} GB Free`;
+        document.getElementById('vram-detail-text').innerText = `Allocated: ${(allocated).toFixed(0)} MB / Free: ${(free).toFixed(0)} MB / Total: ${(total).toFixed(0)} MB`;
+        document.getElementById('vram-bar-fill').style.width = `${pct}%`;
+
+        if (data.active_backend) {
+          document.getElementById('sb-backend').innerText = data.active_backend;
+          document.getElementById('sb-model').innerText = data.active_model || activeModelName;
+        }
+      } catch (e) {
+        console.warn("VRAM refresh error:", e);
+      }
+    }
+
+    async function evictVRAM() {
+      appendSystemNotice("Evicting all LLM backends from VRAM for ComfyUI / Gate 2/3...");
+      try {
+        const res = await fetch('/backend/shutdown', { method: 'POST' });
+        const data = await res.json();
+        appendSystemNotice("VRAM successfully released. 100% GPU memory available for diffusion.");
+        refreshVRAM();
+      } catch (err) {
+        appendSystemNotice("Failed to evict VRAM: " + err);
+      }
+    }
+
+    // Chat Mechanics
+    function handleInputKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    }
+
+    function quickPrompt(txt) {
+      document.getElementById('prompt-input').value = txt;
+      sendMessage();
+    }
+
+    function clearChat() {
+      chatHistory = [];
+      document.getElementById('chat-messages').innerHTML = '';
+      document.getElementById('chat-messages').appendChild(document.getElementById('welcome-card'));
+    }
+
+    function appendSystemNotice(html) {
+      const card = document.getElementById('welcome-card');
+      if (card && card.style.display !== 'none') card.style.display = 'none';
+
+      const msgs = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.style.textAlign = 'center';
+      div.style.fontSize = '0.8rem';
+      div.style.color = 'var(--text-muted)';
+      div.style.margin = '0.4rem 0';
+      div.innerHTML = `<span style="background: var(--bg-surface); padding: 0.2rem 0.6rem; border-radius: 12px; border: 1px solid var(--border-color);">${html}</span>`;
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    async function sendMessage() {
+      if (isGenerating) {
+        if (currentAbortController) currentAbortController.abort();
+        return;
+      }
+
+      const input = document.getElementById('prompt-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const card = document.getElementById('welcome-card');
+      if (card) card.style.display = 'none';
+
+      const model = document.getElementById('header-model-select').value || activeModelName;
+      const sysPrompt = document.getElementById('sys-prompt').value.trim();
+      const temperature = parseFloat(document.getElementById('temp-slider').value);
+      const top_p = parseFloat(document.getElementById('topp-slider').value);
+      const max_tokens = parseInt(document.getElementById('max-tokens-slider').value);
+
+      // Render user message
+      appendMessage('user', text);
+      chatHistory.push({ role: 'user', content: text });
+      input.value = '';
+
+      // Prepare assistant placeholder
+      const aiBubble = appendMessage('assistant', '...');
+      isGenerating = true;
+      const sendBtn = document.getElementById('send-btn');
+      sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
+      sendBtn.classList.add('btn-stop');
+
+      currentAbortController = new AbortController();
+
+      const messagesPayload = [];
+      if (sysPrompt) {
+        messagesPayload.push({ role: 'system', content: sysPrompt });
+      }
+      chatHistory.forEach(m => messagesPayload.push(m));
+
+      let fullResponse = '';
+
+      try {
+        const response = await fetch('/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: model,
+            messages: messagesPayload,
+            temperature: temperature,
+            top_p: top_p,
+            max_tokens: max_tokens,
+            stream: true
+          }),
+          signal: currentAbortController.signal
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop(); // keep last incomplete line
+
+          for (const line of lines) {
+            const cleanLine = line.trim();
+            if (!cleanLine.startsWith('data:')) continue;
+            const dataStr = cleanLine.substring(5).trim();
+            if (dataStr === '[DONE]') break;
+
+            try {
+              const parsed = JSON.parse(dataStr);
+              const delta = parsed.choices[0]?.delta?.content || '';
+              fullResponse += delta;
+              aiBubble.innerHTML = DOMPurify.sanitize(marked.parse(fullResponse));
+              highlightCode(aiBubble);
+              document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+            } catch (err) {
+              // chunk json parse error ignore
+            }
+          }
+        }
+
+        chatHistory.push({ role: 'assistant', content: fullResponse });
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          fullResponse += ' *[Stopped]*';
+        } else {
+          fullResponse = `**Error:** ${err.message}`;
+        }
+        aiBubble.innerHTML = DOMPurify.sanitize(marked.parse(fullResponse));
+      } finally {
+        isGenerating = false;
+        currentAbortController = null;
+        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        sendBtn.classList.remove('btn-stop');
+        refreshVRAM();
+      }
+    }
+
+    function appendMessage(role, text) {
+      const msgs = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = `message ${role}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = `message-avatar ${role === 'user' ? 'avatar-user' : 'avatar-ai'}`;
+      avatar.innerHTML = role === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
+      bubble.innerHTML = DOMPurify.sanitize(marked.parse(text));
+      highlightCode(bubble);
+
+      div.appendChild(avatar);
+      div.appendChild(bubble);
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+      return bubble;
+    }
+
+    function highlightCode(element) {
+      element.querySelectorAll('pre code').forEach(block => {
+        hljs.highlightElement(block);
+      });
+    }
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedTheme = localStorage.getItem('localai-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      if (savedTheme === 'dark') document.documentElement.classList.add('dark');
+      
+      loadModels();
+      refreshVRAM();
+      setInterval(refreshVRAM, 3000);
+    });
+  </script>
+</body>
+</html>

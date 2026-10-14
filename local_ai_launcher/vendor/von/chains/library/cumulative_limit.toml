@@ -1,0 +1,47 @@
+name = "cumulative_limit"
+description = "Read a table of daily or per-row amounts, sum them cumulatively, and find the first row where the running total reaches a threshold (a percentage of a limit or budget)."
+
+[[slots]]
+name = "limit"
+kind = "number"
+ask = "Which amount is the total budget or limit the running total is compared against?"
+
+[[slots]]
+name = "pct"
+kind = "percent"
+ask = "Which percentage of the limit triggers the threshold?"
+optional = true
+
+[[steps]]
+op = "table_series"
+args = ["state", "usage"]
+out = "usage"
+
+[[steps]]
+op = "table_series"
+args = ["state", "credits"]
+out = "credits"
+
+[[steps]]
+op = "series_sub"
+args = ["usage", "credits"]
+out = "net"
+
+[[steps]]
+op = "cumsum"
+args = ["net"]
+out = "running"
+
+[[steps]]
+op = "pct_of"
+args = ["limit", "pct"]
+out = "threshold"
+
+[[steps]]
+op = "first_at_or_above"
+args = ["running", "threshold"]
+out = "first_row"
+
+[answer]
+mode = "ask"
+describe = "Computed running net total by row (usage minus credits, taxes excluded): {running}. The threshold is {threshold} ({pct} of {limit}); the first row whose running total is at or above it is: {first_row}."

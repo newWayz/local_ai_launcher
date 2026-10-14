@@ -1,0 +1,181 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1445.3272499999998 2442.504" width="1445.3272499999998" height="2442.504" style="--bg:#1F1F1F;--fg:#CCCCCC;--line:#CCCCCC;--accent:#0078D4;--muted:#CCCCCCCC;--surface:#181818;--border:#CCCCCC;background:var(--bg)">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+  text { font-family: 'Inter', system-ui, sans-serif; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 85%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+  <marker id="arrowhead" markerWidth="8" markerHeight="5" refX="7" refY="2.5" orient="auto">
+    <polygon points="0 0, 8 2.5, 0 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+  <marker id="arrowhead-start" markerWidth="8" markerHeight="5" refX="1" refY="2.5" orient="auto-start-reverse">
+    <polygon points="8 0, 0 2.5, 8 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+</defs>
+<g class="subgraph" data-id="CheckHuang" data-label="CheckHuang Dynamic VRAM Decision Pipeline">
+  <rect x="361.1489999999999" y="804.1090000000002" width="1044.17825" height="1439.8949999999998" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="361.1489999999999" y="804.1090000000002" width="1044.17825" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="373.1489999999999" y="818.1090000000002" font-size="12" font-weight="600" fill="var(--_text-sec)" dy="4.199999999999999">CheckHuang Dynamic VRAM Decision Pipeline</text>
+</g>
+<polyline class="edge" data-from="Req" data-to="ChkBruno" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="489.4657916666665,76.9 489.4657916666665,124.9" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="ChkBruno" data-to="IsBruno" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Yes" points="454.76212499999986,298.4183333333333 454.76212499999986,369.12199999999996 405.6190416666666,369.12199999999996 405.6190416666666,449.422" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="IsBruno" data-to="RunBruno" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Yes" points="362.8878749999999,663.0778333333333 362.8878749999999,717.809 186.57449999999994,717.809 186.57449999999994,798.1089999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="IsBruno" data-to="CheckHuangFloor" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="No" points="448.3502083333332,663.0778333333333 448.3502083333332,717.8090000000002 661.8750833333332,717.8090000000002 661.8750833333332,786.1090000000002 699.0865833333332,786.1090000000002 699.0865833333332,848.1090000000002" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="ChkBruno" data-to="CheckHuangFloor" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="No" points="524.1694583333332,298.4183333333333 524.1694583333332,437.422 749.6259166666665,437.422 749.6259166666665,848.1090000000002" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="FallbackOfficial" data-to="RunOfficial" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="484.45049999999986,1168.8565 484.45049999999986,792.1090000000002 822.3525833333331,792.1090000000002 822.3525833333331,2298.004" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="FallbackOffload" data-to="RunOfficial" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="658.0586666666666,1567.1795 658.0586666666666,792.1090000000002 822.3525833333331,792.1090000000002 822.3525833333331,2298.004" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="FallbackOOM" data-to="RunOfficial" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="848.4010833333332,1963.2794999999999 848.4010833333332,792.1090000000002 822.3525833333331,792.1090000000002 822.3525833333331,2298.004" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="DivertAscii" data-to="RunHuang" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1015.3402499999999,2228.004 1015.3402499999999,2263.004 1216.9890833333334,2263.004 1216.9890833333334,2298.004" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="RunDirectHuang" data-to="RunHuang" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1267.2057499999999,2228.004 1267.2057499999999,2263.004 1216.9890833333334,2263.004 1216.9890833333334,2298.004" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="CheckHuangFloor" data-to="FallbackOfficial" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="No (&lt;= 62%)" points="699.0865833333332,885.0090000000001 699.0865833333332,897.0090000000001 484.45049999999986,897.0090000000001 484.45049999999986,1081.2565000000002" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="CheckHuangFloor" data-to="ChkOffload" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Yes (&gt; 62%)" points="749.6259166666665,885.0090000000001 749.6259166666665,897.0090000000001 853.8807499999998,897.0090000000001 853.8807499999998,1001.3090000000002" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="ChkOffload" data-to="FallbackOffload" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Yes (CPU Offloaded)" points="812.6315833333332,1207.5548333333336 812.6315833333332,1260.804 658.0586666666666,1260.804 658.0586666666666,1496.4795" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="ChkOffload" data-to="ChkVRAMFit" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="No (100% GPU)" points="895.1299166666665,1207.5548333333334 895.1299166666665,1260.804 1010.45175,1260.804 1010.4517499999998,1365.1040000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="ChkVRAMFit" data-to="FallbackOOM" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="No (Oversized)" points="954.8765833333332,1642.9798333333333 954.8765833333332,1710.555 848.4010833333332,1710.555 848.4010833333332,1909.4795" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="ChkVRAMFit" data-to="CheckAutoPrune" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Yes (Fits 100%)" points="1066.0269166666665,1642.9798333333335 1066.0269166666665,1710.555 1141.273,1710.555 1141.273,1814.855" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="CheckAutoPrune" data-to="DivertAscii" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Yes" points="1100.7648333333332,2017.3958333333333 1100.7648333333332,2069.904 1015.3402499999999,2069.904 1015.3402499999999,2174.2039999999997" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="CheckAutoPrune" data-to="RunDirectHuang" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="No" points="1181.7811666666666,2017.3958333333333 1181.7811666666666,2069.904 1267.2057499999999,2069.904 1267.2057499999999,2174.2039999999997" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<g class="edge-label" data-from="ChkBruno" data-to="IsBruno" data-label="Yes">
+  <rect x="387.1190416666666" y="376.12199999999996" width="36.658" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="405.4480416666666" y="391.27199999999993" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Yes</text>
+</g>
+<g class="edge-label" data-from="IsBruno" data-to="RunBruno" data-label="Yes">
+  <rect x="168.07449999999994" y="724.809" width="36.658" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="186.40349999999995" y="739.959" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Yes</text>
+</g>
+<g class="edge-label" data-from="IsBruno" data-to="CheckHuangFloor" data-label="No">
+  <rect x="646.3750833333332" y="724.8090000000002" width="30.718000000000004" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="661.7340833333333" y="739.9590000000002" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">No</text>
+</g>
+<g class="edge-label" data-from="ChkBruno" data-to="CheckHuangFloor" data-label="No">
+  <rect x="734.1259166666665" y="724.8090000000002" width="30.718000000000004" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="749.4849166666665" y="739.9590000000002" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">No</text>
+</g>
+<g class="edge-label" data-from="CheckHuangFloor" data-to="FallbackOfficial" data-label="No (&lt;= 62%)">
+  <rect x="448.45049999999986" y="928.0090000000001" width="71.11" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="484.00549999999987" y="943.1590000000001" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">No (&lt;= 62%)</text>
+</g>
+<g class="edge-label" data-from="CheckHuangFloor" data-to="ChkOffload" data-label="Yes (&gt; 62%)">
+  <rect x="817.8807499999999" y="928.0090000000001" width="71.11" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="853.4357499999999" y="943.1590000000001" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Yes (&gt; 62%)</text>
+</g>
+<g class="edge-label" data-from="ChkOffload" data-to="FallbackOffload" data-label="Yes (CPU Offloaded)">
+  <rect x="602.0586666666666" y="1291.804" width="111.50200000000002" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="657.8096666666665" y="1306.9540000000002" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Yes (CPU Offloaded)</text>
+</g>
+<g class="edge-label" data-from="ChkOffload" data-to="ChkVRAMFit" data-label="No (100% GPU)">
+  <rect x="968.95175" y="1291.804" width="82.99000000000001" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1010.44675" y="1306.9540000000002" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">No (100% GPU)</text>
+</g>
+<g class="edge-label" data-from="ChkVRAMFit" data-to="FallbackOOM" data-label="No (Oversized)">
+  <rect x="803.9010833333332" y="1741.5549999999998" width="88.33600000000001" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="848.0690833333332" y="1756.705" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">No (Oversized)</text>
+</g>
+<g class="edge-label" data-from="ChkVRAMFit" data-to="CheckAutoPrune" data-label="Yes (Fits 100%)">
+  <rect x="1098.273" y="1741.5549999999998" width="85.36600000000001" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1140.956" y="1756.705" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Yes (Fits 100%)</text>
+</g>
+<g class="edge-label" data-from="CheckAutoPrune" data-to="DivertAscii" data-label="Yes">
+  <rect x="996.8402499999999" y="2100.904" width="36.658" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1015.1692499999998" y="2116.054" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Yes</text>
+</g>
+<g class="edge-label" data-from="CheckAutoPrune" data-to="RunDirectHuang" data-label="No">
+  <rect x="1251.70575" y="2100.904" width="30.718000000000004" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1267.06475" y="2116.054" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">No</text>
+</g>
+<g class="node" data-id="Req" data-label="Incoming Model Request" data-shape="rectangle">
+  <rect x="397.7252916666665" y="40" width="183.481" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="489.4657916666665" y="58.45" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Incoming Model Request</text>
+</g>
+<g class="node" data-id="ChkBruno" data-label="Bruno Engine Selected?" data-shape="diamond">
+  <polygon points="489.4657916666665,124.9 593.5767916666665,229.011 489.4657916666665,333.12199999999996 385.35479166666653,229.011" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="489.4657916666665" y="229.011" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Bruno Engine Selected?</text>
+</g>
+<g class="node" data-id="IsBruno" data-label="Is unpruned base Qwen 3.8 27B?
+(UD-IQ4_XS base or abliterated)" data-shape="diamond">
+  <polygon points="405.6190416666666,449.422 533.8125416666666,577.6155 405.6190416666666,705.809 277.4255416666666,577.6155" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="405.6190416666666" y="577.6155" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="405.6190416666666" dy="-3.9000000000000012">Is unpruned base Qwen 3.8 27B?</tspan><tspan x="405.6190416666666" dy="16.900000000000002">(UD-IQ4_XS base or abliterated)</tspan></text>
+</g>
+<g class="node" data-id="RunBruno" data-label="Run Bruno Passini Engine
+(llama-server-blackwell.exe)
+• Symmetric q8/q8 or q4/q4 KV cache
+• LLAMA_NV_HYBRID_KV host ring buffer" data-shape="rectangle">
+  <rect x="40" y="798.1089999999999" width="293.1489999999999" height="87.60000000000001" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="186.57449999999994" y="841.9089999999999" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="186.57449999999994" dy="-20.8">Run Bruno Passini Engine</tspan><tspan x="186.57449999999994" dy="16.900000000000002">(llama-server-blackwell.exe)</tspan><tspan x="186.57449999999994" dy="16.900000000000002">• Symmetric q8/q8 or q4/q4 KV cache</tspan><tspan x="186.57449999999994" dy="16.900000000000002">• LLAMA_NV_HYBRID_KV host ring buffer</tspan></text>
+</g>
+<g class="node" data-id="RunOfficial" data-label="RunOfficial" data-shape="rectangle">
+  <rect x="770.2555833333331" y="2298.004" width="104.19400000000002" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="822.3525833333331" y="2316.4539999999997" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">RunOfficial</text>
+</g>
+<g class="node" data-id="RunHuang" data-label="Run Raymond Huang Engine
+(llama-server-adaptive.exe)
+• --kv-stream-arena-mib 2240
+• --spec-type draft-mtp
+• Dynamic token eviction &amp; arena compaction" data-shape="rectangle">
+  <rect x="1066.3390833333333" y="2298.004" width="301.29999999999995" height="104.50000000000001" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1216.9890833333334" y="2350.254" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="1216.9890833333334" dy="-29.250000000000004">Run Raymond Huang Engine</tspan><tspan x="1216.9890833333334" dy="16.900000000000002">(llama-server-adaptive.exe)</tspan><tspan x="1216.9890833333334" dy="16.900000000000002">• --kv-stream-arena-mib 2240</tspan><tspan x="1216.9890833333334" dy="16.900000000000002">• --spec-type draft-mtp</tspan><tspan x="1216.9890833333334" dy="16.900000000000002">• Dynamic token eviction &amp; arena compaction</tspan></text>
+</g>
+<g class="node" data-id="CheckHuangFloor" data-label="CheckHuangFloor" data-shape="rectangle">
+  <rect x="648.5472499999998" y="848.1090000000002" width="151.618" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="724.3562499999998" y="866.5590000000002" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">CheckHuangFloor</text>
+</g>
+<g class="node" data-id="FallbackOfficial" data-label="Fallback Reason:
+Footprint small enough that
+streaming KV is unnecessary
+(e.g. gemma-4-12B)" data-shape="rectangle">
+  <rect x="377.1489999999999" y="1081.2565000000002" width="214.60299999999998" height="87.60000000000001" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="484.45049999999986" y="1125.0565000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="484.45049999999986" dy="-20.8">Fallback Reason:</tspan><tspan x="484.45049999999986" dy="16.900000000000002">Footprint small enough that</tspan><tspan x="484.45049999999986" dy="16.900000000000002">streaming KV is unnecessary</tspan><tspan x="484.45049999999986" dy="16.900000000000002">(e.g. gemma-4-12B)</tspan></text>
+</g>
+<g class="node" data-id="ChkOffload" data-label="2. CPU Offload Gate
+Does model require CPU RAM?
+(n-cpu-moe &gt; 0 or ngl == 0)" data-shape="diamond">
+  <polygon points="853.8807499999998,1001.3090000000002 977.6282499999998,1125.0565000000001 853.8807499999998,1248.804 730.1332499999999,1125.0565000000001" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="853.8807499999998" y="1125.0565000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="853.8807499999998" dy="-12.350000000000001">2. CPU Offload Gate</tspan><tspan x="853.8807499999998" dy="16.900000000000002">Does model require CPU RAM?</tspan><tspan x="853.8807499999998" dy="16.900000000000002">(n-cpu-moe &gt; 0 or ngl == 0)</tspan></text>
+</g>
+<g class="node" data-id="FallbackOffload" data-label="Fallback Reason:
+MoE layers offloaded to RAM
+(e.g. qwen-36_35b n-cpu-moe=20)" data-shape="rectangle">
+  <rect x="539.6421666666665" y="1496.4795" width="236.833" height="70.7" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="658.0586666666666" y="1531.8294999999998" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="658.0586666666666" dy="-12.350000000000001">Fallback Reason:</tspan><tspan x="658.0586666666666" dy="16.900000000000002">MoE layers offloaded to RAM</tspan><tspan x="658.0586666666666" dy="16.900000000000002">(e.g. qwen-36_35b n-cpu-moe=20)</tspan></text>
+</g>
+<g class="node" data-id="ChkVRAMFit" data-label="3. Headroom Ceiling Gate
+Weight + 2240 MiB Arena + 384 MiB Headroom
+&lt;= Total VRAM (16,384 MiB)?" data-shape="diamond">
+  <polygon points="1010.45175,1365.104 1177.17725,1531.8295 1010.45175,1698.555 843.7262499999999,1531.8295" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1010.45175" y="1531.8295" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="1010.45175" dy="-12.350000000000001">3. Headroom Ceiling Gate</tspan><tspan x="1010.45175" dy="16.900000000000002">Weight + 2240 MiB Arena + 384 MiB Headroom</tspan><tspan x="1010.45175" dy="16.900000000000002">&lt;= Total VRAM (16,384 MiB)?</tspan></text>
+</g>
+<g class="node" data-id="FallbackOOM" data-label="Fallback Reason:
+Weights + Arena exceed VRAM" data-shape="rectangle">
+  <rect x="736.2830833333333" y="1909.4795" width="224.236" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="848.4010833333332" y="1936.3795" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="848.4010833333332" dy="-3.9000000000000012">Fallback Reason:</tspan><tspan x="848.4010833333332" dy="16.900000000000002">Weights + Arena exceed VRAM</tspan></text>
+</g>
+<g class="node" data-id="CheckAutoPrune" data-label="4. Auto-Prune Check
+Is base Qwen 3.8 27B IQ4_XS?" data-shape="diamond">
+  <polygon points="1141.273,1814.855 1262.7975,1936.3795 1141.273,2057.904 1019.7484999999999,1936.3795" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1141.273" y="1936.3795" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="1141.273" dy="-3.9000000000000012">4. Auto-Prune Check</tspan><tspan x="1141.273" dy="16.900000000000002">Is base Qwen 3.8 27B IQ4_XS?</tspan></text>
+</g>
+<g class="node" data-id="DivertAscii" data-label="Auto-Prune to ASCII IQ4_XS
+(~12.94 GB weight footprint)" data-shape="rectangle">
+  <rect x="913.5962499999998" y="2174.2039999999997" width="203.48799999999997" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1015.3402499999999" y="2201.104" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="1015.3402499999999" dy="-3.9000000000000012">Auto-Prune to ASCII IQ4_XS</tspan><tspan x="1015.3402499999999" dy="16.900000000000002">(~12.94 GB weight footprint)</tspan></text>
+</g>
+<g class="node" data-id="RunDirectHuang" data-label="Use existing model file
+(e.g. qwen-38_27b-huang-gsq, etc.)" data-shape="rectangle">
+  <rect x="1145.0842499999999" y="2174.2039999999997" width="244.24299999999997" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1267.2057499999999" y="2201.104" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="1267.2057499999999" dy="-3.9000000000000012">Use existing model file</tspan><tspan x="1267.2057499999999" dy="16.900000000000002">(e.g. qwen-38_27b-huang-gsq, etc.)</tspan></text>
+</g>
+</svg>

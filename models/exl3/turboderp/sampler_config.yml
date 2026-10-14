@@ -1,0 +1,6 @@
+temperature:
+  override: 1.0
+top_p:
+  override: 0.95
+top_k:
+  override: 64

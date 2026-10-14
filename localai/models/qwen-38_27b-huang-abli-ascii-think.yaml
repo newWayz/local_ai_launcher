@@ -1,0 +1,92 @@
+name: qwen-38_27b-huang-abli-ascii-think
+backend: blackwell-llama
+context_size: 262000
+gpu_layers: -1
+parameters:
+  threads: 8
+  threads_batch: 8
+  batch_size: 512
+  ubatch_size: 256
+  flash_attn: 'on'
+  cache_reuse: 0
+  ctk: q8_0
+  ctv: q4_0
+  chat_template_file: models/chat_template_qwen38_sharp_v22.4.0_medium-convergent.jinja
+  jinja: true
+  cache_type_k_draft: q8_0
+  cache_type_v_draft: q4_0
+  ctx_checkpoints: 32
+  spec_type: draft-mtp
+  spec_draft_n_max: 3
+  spec_draft_p_min: 0.2
+  spec_draft_p_split: 0.1
+  seed: 424242
+  parallel: 1
+  kv_stream_auxiliary_layers: 1
+  kv_stream_arena_mib: 2240
+  no_mmproj: true
+  model: models/llama-server/huihui-ai/Huihui-Qwen3.8-27B-abliterated-GGUF/Huihui-Qwen3.8-27B-abliterated-UD-ASCII-IQ4_XS.gguf
+sampling:
+  temperature: 0.6
+  top_p: 0.95
+  top_k: 20
+  min_p: 0.0
+  presence_penalty: 0.0
+  repetition_penalty: 1.0
+  seed: 424242
+reasoning:
+  enabled: true
+  format: deepseek
+  preserve: true
+  budget_tokens: 8192
+  budget_message: Wait, I'm overthinking this. Let's answer now.
+engine_args:
+  host: 127.0.0.1
+  port: '9931'
+  flash-attn: 'on'
+  jinja: 'on'
+  ngl: '-1'
+  cache-reuse: '0'
+  ctk: q8_0
+  ctv: q4_0
+  parallel: '1'
+  load-mode: none
+  no-webui: 'True'
+  fit: 'off'
+  threads: '8'
+  threads-batch: '8'
+  image-min-tokens: '1024'
+  image-max-tokens: '4096'
+  batch-size: '512'
+  ubatch-size: '256'
+  presence-penalty: '0.0'
+  dry-multiplier: '0.0'
+  dry-base: '1.75'
+  dry-allowed-length: '2'
+  dry-penalty-last-n: '4096'
+  reasoning-budget: '8192'
+  model: models/llama-server/huihui-ai/Huihui-Qwen3.8-27B-abliterated-GGUF/Huihui-Qwen3.8-27B-abliterated-UD-ASCII-IQ4_XS.gguf
+  chat-template-file: models/chat_template_qwen38_sharp_v22.4.0_medium-convergent.jinja
+  alias: qwen-38_27b-huang-abli-ascii-think
+  ctx-size: '262000'
+  cache-type-k-draft: q8_0
+  cache-type-v-draft: q4_0
+  kv-stream-auxiliary-layers: '1'
+  kv-stream-arena-mib: '2240'
+  no-mmproj: 'True'
+  ctx-checkpoints: '32'
+  spec-type: draft-mtp
+  spec-draft-n-max: '3'
+  spec-draft-p-min: '0.20'
+  spec-draft-p-split: '0.1'
+  seed: '424242'
+  temp: '0.6'
+  top-p: '0.95'
+  top-k: '20'
+  min-p: '0.00'
+  repeat-penalty: '1.0'
+  reasoning: 'on'
+  reasoning-format: deepseek
+  reasoning-preserve: 'true'
+  reasoning-budget-message: '"Wait, I''m overthinking this. Let''s answer now."'
+mmap: false

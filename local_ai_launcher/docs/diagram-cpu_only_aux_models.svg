@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 846.7214999999999 847.3999999999999" width="846.7214999999999" height="847.3999999999999" style="--bg:#1F1F1F;--fg:#CCCCCC;--line:#CCCCCC;--accent:#0078D4;--muted:#CCCCCCCC;--surface:#181818;--border:#CCCCCC;background:var(--bg)">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+  text { font-family: 'Inter', system-ui, sans-serif; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 85%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+  <marker id="arrowhead" markerWidth="8" markerHeight="5" refX="7" refY="2.5" orient="auto">
+    <polygon points="0 0, 8 2.5, 0 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+  <marker id="arrowhead-start" markerWidth="8" markerHeight="5" refX="1" refY="2.5" orient="auto-start-reverse">
+    <polygon points="8 0, 0 2.5, 8 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+</defs>
+<polyline class="edge" data-from="Req" data-to="G" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="317.13849999999996,76.9 317.13849999999996,124.9" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="G" data-to="T1" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="317.13849999999996,161.8 317.13849999999996,209.8" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="T1" data-to="Block" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Malicious / Destructive" points="253.2133333333333,263.6 253.2133333333333,418.30000000000007 162.86249999999998,418.30000000000007 162.86249999999998,490.1500000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="T1" data-to="T2" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Safe" points="381.0636666666666,263.6 381.0636666666666,299.6 471.4145,299.6 471.4145,379.90000000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="T2" data-to="T3" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="471.4145,433.70000000000005 471.4145,490.1500000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="T3" data-to="Resp" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="High Confidence" points="417.8633333333333,543.95 417.8633333333333,571.5 302.68899999999996,571.5 302.68899999999996,651.8" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="T3" data-to="T4" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Generative Query" points="524.9656666666666,543.95 524.9656666666666,571.5 640.14,571.5 640.1399999999999,651.8" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="T4" data-to="GPU" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="640.1399999999999,705.5999999999999 640.14,753.5999999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<g class="edge-label" data-from="T1" data-to="Block" data-label="Malicious / Destructive">
+  <rect x="100.36249999999998" y="425.30000000000007" width="124.57000000000001" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="162.64749999999998" y="440.45000000000005" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Malicious / Destructive</text>
+</g>
+<g class="edge-label" data-from="T1" data-to="T2" data-label="Safe">
+  <rect x="451.4145" y="306.6" width="39.034000000000006" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="470.93149999999997" y="321.75" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Safe</text>
+</g>
+<g class="edge-label" data-from="T3" data-to="Resp" data-label="High Confidence">
+  <rect x="255.189" y="578.5" width="94.27600000000001" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="302.327" y="593.65" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">High Confidence</text>
+</g>
+<g class="edge-label" data-from="T3" data-to="T4" data-label="Generative Query">
+  <rect x="589.14" y="578.5" width="101.40400000000002" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="639.842" y="593.65" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Generative Query</text>
+</g>
+<g class="node" data-id="Req" data-label="Incoming /v1/chat/completions Request" data-shape="rectangle">
+  <rect x="185.38400000000001" y="40" width="263.5089999999999" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="317.13849999999996" y="58.45" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Incoming /v1/chat/completions Request</text>
+</g>
+<g class="node" data-id="G" data-label="Gateway Pre-Flight Gating" data-shape="rectangle">
+  <rect x="220.952" y="124.9" width="192.37299999999996" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="317.13849999999996" y="143.35000000000002" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Gateway Pre-Flight Gating</text>
+</g>
+<g class="node" data-id="T1" data-label="1. von Security Tripwire (&lt;10ms)
+Blocks prompt injection &amp; destructive command blast radius" data-shape="rectangle">
+  <rect x="125.36300000000003" y="209.8" width="383.5509999999999" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="317.13849999999996" y="236.70000000000002" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="317.13849999999996" dy="-3.9000000000000012">1. von Security Tripwire (&lt;10ms)</tspan><tspan x="317.13849999999996" dy="16.900000000000002">Blocks prompt injection &amp; destructive command blast radius</tspan></text>
+</g>
+<g class="node" data-id="Block" data-label="HTTP 400 Refusal (0 GPU compute)" data-shape="rectangle">
+  <rect x="40" y="490.1500000000001" width="245.72499999999997" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="162.86249999999998" y="508.6000000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">HTTP 400 Refusal (0 GPU compute)</text>
+</g>
+<g class="node" data-id="T2" data-label="2. von Dynamic Tool Shortlisting (&lt;15ms)
+If catalog &gt;= 15 tools, prunes external/MCP tools" data-shape="rectangle">
+  <rect x="313.72499999999997" y="379.90000000000003" width="315.37899999999996" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="471.4145" y="406.8" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="471.4145" dy="-3.9000000000000012">2. von Dynamic Tool Shortlisting (&lt;15ms)</tspan><tspan x="471.4145" dy="16.900000000000002">If catalog &gt;= 15 tools, prunes external/MCP tools</tspan></text>
+</g>
+<g class="node" data-id="T3" data-label="3. von Discrete Gating Check
+If 'candidate_options' present, evaluates on CPU" data-shape="rectangle">
+  <rect x="310.76099999999997" y="490.1500000000001" width="321.30699999999996" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="471.4145" y="517.0500000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="471.4145" dy="-3.9000000000000012">3. von Discrete Gating Check</tspan><tspan x="471.4145" dy="16.900000000000002">If &#39;candidate_options&#39; present, evaluates on CPU</tspan></text>
+</g>
+<g class="node" data-id="Resp" data-label="Return Discrete Decision (0 GPU compute)" data-shape="rectangle">
+  <rect x="159.8195" y="651.8" width="285.7389999999999" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="302.68899999999996" y="670.25" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Return Discrete Decision (0 GPU compute)</text>
+</g>
+<g class="node" data-id="T4" data-label="4. CPU Reranker (&lt;25ms)
+If 'raw_documents' present, prunes retrieval noise" data-shape="rectangle">
+  <rect x="473.5585" y="651.8" width="333.16299999999995" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="640.14" y="678.6999999999999" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="640.14" dy="-3.9000000000000012">4. CPU Reranker (&lt;25ms)</tspan><tspan x="640.14" dy="16.900000000000002">If &#39;raw_documents&#39; present, prunes retrieval noise</tspan></text>
+</g>
+<g class="node" data-id="GPU" data-label="5. Primary Qwen 27B on GPU
+(Clean context &amp; intact KV cache)" data-shape="rectangle">
+  <rect x="524.6875" y="753.5999999999999" width="230.90499999999997" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="640.14" y="780.4999999999999" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="640.14" dy="-3.9000000000000012">5. Primary Qwen 27B on GPU</tspan><tspan x="640.14" dy="16.900000000000002">(Clean context &amp; intact KV cache)</tspan></text>
+</g>
+</svg>

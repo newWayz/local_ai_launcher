@@ -1,0 +1,593 @@
+# launcher.toml (User configuration overrides for local_ai_launcher)
+# Copy this file to `launcher.toml` in `local_ai_launcher/` or the workspace root.
+# Any settings specified here will override the code defaults without modifying git-tracked files.
+
+# Default model to route through LocalAI:
+#
+# When using Huang Engine (`blackwell_engine = "huang"`):
+# Model choices on 16GB VRAM are strictly limited to the following 3 memory-safe variants:
+#   1. "qwen-38_27b-huang-gsq-iq3s-think" (ISTA-DASLab IQ3_S, 10.96 GB, unchanged)
+#   2. "qwen-38_27b-huang-ascii-think"    (Unsloth ASCII IQ4_XS, 12.63 GB, auto-pruned via ASCII-Condensed-prune-tools if missing)
+#   3. "qwen-38_27b-huang-abli-ascii-think" (Huihui Abliterated ASCII IQ4_XS, 12.77 GB, auto-pruned via ASCII-Condensed-prune-tools if missing)
+# (Note: referencing the base IQ4_XS models will automatically divert to their ASCII variants under Huang)
+#
+# When using Bruno Engine (`blackwell_engine = "bruno"`):
+# The Bruno setup and model remain completely as-is:
+#   - "qwen-38_27b-blackwell-256k-think" (Unsloth IQ4_XS base, 14.25 GB, unchanged)
+#
+default_model = "qwen-38_27b-huang-gsq-iq3s-think"
+# default_model = "qwen-38_27b-huang-ascii-think"
+# default_model = "qwen-38_27b-blackwell-256k-think"
+# default_model = "strata-iq3s"  # Qwen3.8-Flash-Next 125B MoE via Strata Engine
+
+# =============================================================================
+# Strata 125B MoE Engine Settings
+# Speculative decoding C++/CUDA engine for Qwen3.8-Flash-Next 125B (IQ3_S)
+# =============================================================================
+# To select Strata as the active engine, set:
+#   default_model = "strata-iq3s"  # or "qwen-38-flash-strata-iq3s"
+#
+# All native Strata engine & MTP speculative settings (spec window, min_p threshold,
+# draft tokens, mmap_experts, resident_budget_gib, kv_mode, expert_cache) are
+# centrally configured in:
+#   `strata_settings.json` (see `strata_settings.json.example`)
+#
+# Model definitions (GGUF shards, PLE table, rt directory, jinja template) are
+# centrally configured in:
+#   `strata_models.json` (see `strata_models.json.example`)
+#
+# Chat Template Settings:
+# Set `strata_use_custom_chat_template` to true to use the custom template specified
+# in `strata_models.json` (e.g. models/chat_template_qwen38_sharp_v22.4.0_medium-convergent.jinja).
+# When set to false, the original GGUF chat template (extracted during initial pack generation)
+# is preserved and restored.
+#
+# strata_use_custom_chat_template = true
+#
+# System RAM Only KV Cache (KV Streaming Mode):
+# When set to true, Strata offloads the KV cache to pinned DDR5 host RAM, keeping only
+# the minimal resident window (~20,480 cells, ~250 MiB) in GPU VRAM.
+# This frees maximum VRAM for dynamic MoE expert cache slots (~6,400+ slots on 16GB cards).
+# When set to false (default), standard behavior applies: the full KV cache resides in GPU VRAM.
+#
+# strata_system_ram_kv_cache = false
+# strata_kv_resident = 20480          # Resident cells per QSA layer in VRAM (default: 20480; hard engine minimum 20480)
+# strata_vram_reserve_mib = 700       # WDDM safety headroom in MiB (default: 700; keep >= 700 on Windows to avoid PCIe paging)
+#
+# Or under [strata] table:
+# [strata]
+# use_custom_chat_template = true
+# system_ram_kv_cache = false
+# kv_resident = 20480
+# vram_reserve_mib = 700
+# =============================================================================
+
+# =============================================================================
+# Hardware Profiles & High-Fidelity Presets
+# =============================================================================
+# Available presets:
+#   - "blackwell_16gb" (Default): Flagship reference profile (RTX 50-series Blackwell 16GB VRAM + Intel Ultra 9 P-core offload)
+#   - "ada_24gb"                : Full GPU offload for 24GB cards (RTX 4090 / 3090, n-cpu-moe = 0, opportunistic eviction)
+#   - "standard_16gb"           : Standard CUDA 16GB VRAM (RTX 4080 / 4070Ti Super)
+#   - "budget_12gb"             : Standard CUDA 12GB VRAM (RTX 4070 / 3060, n-cpu-moe = 32, 4-bit KV cache)
+[hardware]
+profile = "blackwell_16gb"
+
+# =============================================================================
+# Blackwell llama-server Engine Selection & KV Streaming Settings
+# Modular execution backend for Blackwell RTX 50-series models (e.g. Qwen 3.8 27B)
+# =============================================================================
+# Available Engine Options:
+#   - "huang" (Default) : Raymond Huang's adaptive KV streaming engine (master branch).
+#                         Uses a fixed-size device KV arena (--kv-stream-arena-mib 2240)
+#                         with layer-17 draft-mtp (--spec-type draft-mtp --spec-draft-n-max 3)
+#                         and Q8_0/Q4_0 KV cache. Highly stable under Windows 11 WDDM 3.2
+#                         with 0 MB BAR1 aperture pressure and zero page-table locks.
+#   - "bruno"           : Bruno Passini's sparse VMM 256k engine (qwen38-blackwell-256k).
+#                         Uses 36 runtime environment variables, cuMemAddressReserve,
+#                         and dynamic page table updates. Best on native Linux TCC mode;
+#                         on Windows WDDM, BAR1 exhaustion limits context to ~16K-32K.
+#
+# Can be specified as `blackwell_engine = "huang"` or via the [blackwell] table:
+blackwell_engine = "huang"
+
+# Huang Engine Tunables (Active when blackwell_engine = "huang"):
+huang_arena_mib = 2240              # Fixed KV stream device arena in MiB (default: 2240)
+huang_auxiliary_layers = 1          # MTP auxiliary streaming layer (default: 1)
+huang_draft_max = 3                 # Speculative MTP draft tokens (default: 3)
+huang_draft_p_min = 0.20            # Minimum speculative acceptance probability threshold (default: 0.20)
+huang_draft_p_split = 0.10          # Speculative decoding tree branch split threshold (default: 0.10)
+huang_spec_type = "draft-mtp"       # Speculative decoding type (default: "draft-mtp")
+huang_batch_size = 512              # Prompt evaluation batch size (default: 512)
+huang_ubatch_size = 256             # Physical intermediate activation workspace size (default: 256)
+huang_parallel = 1                  # Parallel sequence slots (default: 1)
+huang_no_mmproj = true              # Suppress multimodal vision projector auto-load (default: true)
+
+# Install & Update behaviors for Blackwell engines:
+# Options: "existing" (use precompiled binaries if present, build if missing), "always_build", "never_install"
+llamacpp_huang_install_behavior = "existing"
+llamacpp_huang_update_behavior = "never_update"
+llamacpp_blackwell_install_behavior = "existing"
+llamacpp_blackwell_update_behavior = "never_update"
+
+# [blackwell]
+# engine = "huang"                  # "huang" or "bruno"
+# arena_mib = 2240
+# auxiliary_layers = 1
+# draft_max = 3
+# draft_p_min = 0.20
+# draft_p_split = 0.10
+# spec_type = "draft-mtp"
+# batch_size = 512
+# ubatch_size = 256
+# parallel = 1
+# no_mmproj = true
+
+
+# High-Fidelity Local INI Overlays:
+# To tune or override any model, MoE layer, or sampler parameter on your local machine
+# without touching git-tracked models.ini, create `models.local.ini` in the workspace root.
+# Sections and options in `models.local.ini` automatically overlay onto models.ini at launch.
+# models_preset = "models.ini"               # Optional alternate base preset file
+# models_override = "models.local.ini"       # Optional custom override file path
+
+# =============================================================================
+# Agent Harness Selection & Multi-Harness Priority Rules
+# =============================================================================
+# Active agent harnesses to launch in Windows Terminal tabs.
+# Supported harnesses:
+#   - "pi"            : Pi senior software architect & coding assistant (offline CLI)
+#   - "hermes"        : Hermes Agent autonomous coding assistant (offline CLI)
+#   - "dsh"           : DeepSeek Harness (alias for deepseek, offline CLI)
+#   - "claude"        : Claude Code CLI (offline CLI when running Strata engine in local mode)
+#   - "claudedesktop" : Claude Desktop GUI app (offline when running Strata engine in gateway mode)
+#   - "orca"          : Stably AI Orca ADE (offline desktop meta-harness hosting Pi, Hermes, Trae, Claude)
+#   - "t3" / "t3code" : T3 Code ADE (offline desktop meta-harness hosting OpenCode, Pi, Hermes)
+#   - "agy-desktop"   : Google Antigravity Desktop (online-only cloud harness)
+#
+# Multi-Harness Preload & Inner Context Rules:
+# 1. Server Context Preload (Time To First Token / TTFT):
+#    If more than 1 offline-capable harness is defined in `choose_harness`,
+#    the left-most harness that is NOT an offline model capable meta-harness
+#    (meta-harnesses like Orca ADE or T3 Code load other harnesses inside)
+#    is the harness environment to be loaded into the running local LLM engine server KV cache.
+#
+#    Example:
+#    # choose_harness = ["orca", "t3", "claudedesktop", "pi", "hermes"]
+#    In this example, "claudedesktop" initial context gets loaded into the running local
+#    LLM engine server. The harness contexts of "pi", "hermes", "orca", and "t3" are NOT loaded
+#    into the server KV cache.
+#
+# 2. Meta-Harness Inner Context:
+#    The leftmost meta-harness (Orca ADE or T3 Code) automatically initializes with the
+#    harness context of the leftmost non-meta harness that supports offline CLI.
+#    If only meta-harnesses are defined (e.g. ["orca"] or ["t3code"]), it defaults to
+#    offline Claude Code CLI ("claude") when running Strata engine, or "pi" under other engines.
+choose_harness = ["agy-desktop", "orca"]
+# choose_harness = ["orca", "t3", "claudedesktop", "pi", "hermes"]
+
+# LocalAI Core settings
+localai_port = 8080
+localai_headless = false
+localai_single_active_backend = true
+preload_default_model = true
+enable_context_preloading = true
+
+# Optional OmniRoute proxy
+use_omniroute_proxy = false
+
+# Voice dictation via Intel NPU Parakeet
+voice_to_text = "parakeet_tdt_v3"
+parakeet_device = "NPU"
+voice_dictation_hotkey = "f8"
+
+# =============================================================================
+# LocalAI Loop Detection & Repetition Mitigation Settings
+# Real-time sliding window n-gram and cyclic sentence autocorrelation detector
+# =============================================================================
+enable_loop_detection = true
+loop_detector_ngram_size = 8          # N-gram token count / window size (e.g. 6, 8, 12; default: 8)
+loop_detector_ngram_threshold = 3     # Repeat threshold before truncation (default: 3)
+loop_detector_cycle_similarity = 0.82 # Autocorrelation cycle similarity threshold (0.01 - 1.0; default: 0.82)
+loop_detector_min_sentence_len = 35   # Minimum sentence length in characters (default: 35)
+loop_detector_max_history_words = 1500 # Maximum history words in sliding window (default: 1500)
+
+# Autonomous Loop Recovery & Escalation Ladder
+# When an agent harness (e.g. Pi) encounters a repetition loop:
+# - Retries up to loop_recovery_max_retries (default: 3) with an autonomous anti-loop steering prompt
+# - Cools temperature by loop_recovery_temp_reduce (default: 0.1) per streak down to loop_recovery_temp_floor (default: 0.15)
+# - Escalates on reaching the threshold by compacting context and resetting the llama-server KV-cache slot
+loop_recovery_max_retries = 3
+loop_recovery_temp_reduce = 0.1
+loop_recovery_temp_floor = 0.15
+loop_recovery_presence_penalty = 0.0
+
+# =============================================================================
+# CPU Auxiliary Toggles & Settings
+# Runs concurrently in DDR5 host RAM on CPU P-cores without consuming GPU VRAM.
+# =============================================================================
+# Master toggles to turn on/off individual CPU auxiliary engines:
+enable_cpu_reranker = true        # Toggle CPU Reranker microservice (Port 8082)
+enable_cpu_onnx_gater = true      # Toggle CPU ONNX Decision Gater (Port 8083)
+enable_cpu_decision = true        # Backward-compatible decision toggle
+enable_cpu_llama_server = true    # Toggle CPU-only llama-server (Port 8081 - Media Director)
+
+# Automatic Gateway Dispatch: when true, standard /v1/chat/completions requests
+# automatically leverage the CPU ONNX Gater (for fast ~15ms discrete decisions/permission checks)
+# and the CPU Reranker (for multi-passage context pruning) before calling GPU models.
+enable_auto_cpu_dispatch = true
+
+# CLM Dynamic Tool Shortlisting: when true, prunes large external toolsets (e.g. >= 15 MCP tools)
+# down to top-K via CLM on Port 8083 while always preserving core native agent primitives
+# (read, write, edit, ls, find, grep, terminal, bash, mcp). Defaults to false.
+clm_shortlist_threshold = 15         # Minimum tool count in catalog before shortlisting evaluates (default: 15)
+clm_shortlist_top_k = 5              # Filter to have top N number of external/MCP tools (default: 5)
+clm_shortlist_min_delta = 0.15       # Confidence delta threshold: expands window (+2 tools) if scores are close
+clm_csls_k_neighbors = 5             # Cross-Domain Local Scaling (CSLS) hubness elimination neighbor count
+clm_enable_negation_masking = true   # Detects negative user instructions ('avoid', "don't use", 'never') and masks to -inf
+clm_pcore_affinity = true            # Pin CLM threads to Intel Core Ultra 9 275HX Lion Cove P-cores (mask 0x00FF)
+
+# =============================================================================
+# 1. CPU-Only llama-server (Port 8081 - Media Director / Gemma 4 Vision GGUF)
+# Pinned to CPU cores (-ngl 0) so 100% of GPU VRAM is free for video diffusion / ComfyUI.
+# Distinct reference for other AI, OmniStudio, and studio_addon to use standalone.
+# =============================================================================
+cpu_llama_server_model = "gemma-4-12B-it-QAT-audio-think-uncen-vision"  # or "none" to disable
+cpu_llama_server_port = 8081   # Port 8081: dedicated CPU-only llama-server
+cpu_llama_server_threads = 4   # 4 CPU threads to avoid throttling background video rendering
+cpu_llama_server_context_size = 16384
+
+# =============================================================================
+# 2. CPU Auxiliary Reranker Engine (Port 8082 - bge-reranker-v2-m3)
+# Dedicated cross-encoder microservice running on CPU via OpenVINO/fastembed
+# =============================================================================
+cpu_reranker_model = "BAAI/bge-reranker-v2-m3"
+cpu_reranker_device = "CPU"
+cpu_reranker_port = 8082   # Dedicated CPU Reranker standalone microservice port
+
+# =============================================================================
+# 3. CPU ONNX Decision / Gater / CLM Engine (Port 8083)
+# Contrastive Language Model (CLM) dual-encoder executed via ONNX Runtime
+# on Intel AVX2/AVX-VNNI CPU cores in ~14ms.
+# Evaluates discrete choices, invariants, tool permissions, and dynamic tool shortlisting.
+#
+# Available Model Options:
+#   - "wfzyx/von
+#   - "none"                                         : Disable CPU gater / CLM microservice
+# Note: cpu_decision_model / cpu_decision_threads alias directly to cpu_onnx_gater_*
+# =============================================================================
+cpu_onnx_gater_model = "wfzyx/von"
+cpu_onnx_gater_port = 8083                                        # Port 8083: CPU ONNX Decision Gater
+cpu_onnx_gater_device = "CPU"
+cpu_onnx_gater_threads = 8                                        # Pinned to Lion Cove P-cores (-t 8)
+cpu_decision_model = "wfzyx/von"
+cpu_decision_threads = 8                                          # P-core threading for decision passes
+cpu_decision_port = 8083                                          # Routes decision queries to ONNX Gater
+
+
+# =============================================================================
+# Hermes Signal CLI Daemon Port (Port 8085)
+# Isolated from CPU llama-server (8081), CPU Reranker (8082), and ONNX Gater (8083)
+# =============================================================================
+signal_daemon_port = 8085
+
+# =============================================================================
+# GVS5H Deep-Solve Log Retention
+# Maximum number of recent log run folders retained in C:\aiWorkspace\logs\gvs5h
+# Older run folders are automatically pruned on solver finalization.
+# =============================================================================
+gvs5h_max_log_runs = 100
+
+# =============================================================================
+# Workspace Skill Management & Upstream Suites
+# Keeps upstream Git suites cleanly nested in .agents/vendor/ and exposes only
+# entry routers in .agents/skills/, keeping agent prompts under 2k tokens.
+#
+# Custom Skill Insurance:
+#   - Tier 1 (Builtin): local_ai_launcher/skills/ (offline, git-tracked canonical)
+#   - Tier 2 (External): [skills.sources] (declaratively maintained git suites)
+# =============================================================================
+[skills]
+enable_gateway = true             # Maintain curated router gateway in .agents/skills
+auto_update_on_launch = false     # If true, runs ff-only pull on vendor suites at launch
+
+# -----------------------------------------------------------------------------
+# Active External GitHub Skill Sources & Upstream Suites
+# -----------------------------------------------------------------------------
+
+# 1. gstack: Complete software engineering suite (QA, review, ship, browse)
+[skills.sources.gstack]
+git = "https://github.com/garrytan/gstack.git"
+branch = "main"
+router_path = ""
+expose_name = "gstack"
+post_update = "setup"
+enabled = true
+description = "Router for the gstack skill suite: QA, review, ship, browse, planning, security, and debugging."
+
+# 2. HyperFrames: Video, motion graphics, and timeline composition suite
+[skills.sources.hyperframes]
+git = "https://github.com/heygen-com/hyperframes.git"
+branch = "main"
+router_path = "skills/hyperframes"
+expose_name = "hyperframes"
+enabled = true
+description = "Mandatory entry point for HyperFrames video, motion graphics, and HTML animation suite."
+
+# 3. Remotion: Programmatic video creation with React
+[skills.sources.remotion]
+git = "https://github.com/remotion-dev/remotion.git"
+branch = "main"
+router_path = ".agents/skills/remotion-best-practices"
+expose_name = "remotion-best-practices"
+enabled = true
+description = "Router for all Remotion video creation, React markup, studio, and rendering skills."
+
+# 4. Superpowers: Core agentic engineering process skills and orchestrator
+[skills.sources.superpowers]
+git = "https://github.com/obra/superpowers.git"
+branch = "main"
+router_path = "skills/using-superpowers"
+expose_name = "using-superpowers"
+enabled = true
+description = "Superpowers agentic software engineering workflows and orchestration."
+expose_subskills = [
+    "skills/brainstorming",
+    "skills/systematic-debugging",
+    "skills/test-driven-development",
+    "skills/writing-plans",
+    "skills/executing-plans",
+    "skills/subagent-driven-development",
+    "skills/verification-before-completion"
+]
+
+# 5. Orca CLI: Terminal automation and worktree orchestration
+[skills.sources.orca]
+git = "https://github.com/stablyai/orca.git"
+branch = "main"
+router_path = "skills/orca-cli"
+expose_name = "orca-cli"
+enabled = true
+description = "Operate Orca worktrees, terminals, and automations."
+expose_subskills = [
+    "skills/orchestration"
+]
+
+# 6. Humanizer: Natural voice rewriter avoiding AI cliché patterns
+[skills.sources.humanizer]
+git = "https://github.com/blader/humanizer.git"
+branch = "main"
+router_path = ""
+expose_name = "humanizer"
+enabled = true
+description = "Detects AI writing patterns and rewrites text in authentic, natural builder voice."
+
+# 7. Impeccable: UI/UX design, visual hierarchy, and typography review
+[skills.sources.impeccable]
+git = "https://github.com/pbakaus/impeccable.git"
+branch = "main"
+router_path = ""
+expose_name = "impeccable"
+enabled = true
+description = "Frontend design, visual polish, typography, and UX review."
+
+# 8. Skill-Inspector: NVIDIA SkillSpector safety and integrity auditor
+[skills.sources.skill-inspector]
+git = "https://github.com/NVIDIA/SkillSpector.git"
+branch = "main"
+router_path = ""
+expose_name = "skill-inspector"
+enabled = true
+description = "NVIDIA SkillSpector: Audits AI agent skills for safety, trust, and execution integrity."
+
+# 9. Watch: Video inspection and frame analysis via yt-dlp/ffmpeg
+[skills.sources.watch]
+git = "https://github.com/bradautomates/claude-video.git"
+branch = "main"
+router_path = ""
+expose_name = "watch"
+enabled = true
+description = "Watch and inspect video files/URLs via yt-dlp and ffmpeg."
+
+# 10. Find-Skills: Open agent skills search and discovery from skills.sh
+[skills.sources.find-skills]
+git = "https://github.com/vercel-labs/skills.git"
+branch = "main"
+router_path = "skills/find-skills"
+expose_name = "find-skills"
+enabled = true
+description = "Discovers and evaluates open agent skills from skills.sh."
+
+# 11. REA: Reverse Engineer Anything MCP & Skill Suite
+[skills.sources.rea]
+git = "https://github.com/morluto/rea.git"
+branch = "main"
+router_path = ".agents/skills/reverse-engineer-anything"
+expose_name = "reverse-engineer-anything"
+enabled = true
+description = "Reverse engineer anything across binaries, applications, and runtime behavior."
+expose_subskills = [
+    "rea:.agents/skills/reverse-engineer-anything"
+]
+
+
+# =============================================================================
+# Maximum Update Frequency Controls
+# Limits how often harnesses, engines, and dependencies check for or perform updates.
+# If an update occurred within the configured window, subsequent launches skip updates.
+# Options: Hours e.g. 0 (always), 1 (hourly), 24 (daily), 168 (weekly), 720 (monthly), -1 (never).
+#          Named strings also accepted: "always", "hourly", "daily", "weekly", "biweekly", "monthly", "never".
+# =============================================================================
+update_frequency_hrs = 168   # Global default update interval in hours (168 = weekly)
+
+[harness_update_frequency_hrs]
+# Per-harness override in hours (takes precedence over global update_frequency_hrs)
+# pi = 24          # Check updates every 24 hours (daily)
+# hermes = 168     # Check updates every 168 hours (weekly)
+# orca = 720       # Check updates every 720 hours (~monthly)
+# t3 = 168         # Check updates every 168 hours (weekly)
+
+[engine_update_frequency_hrs]
+# Per-engine override in hours
+# localai = 168
+# llamacpp = 720
+# tabbyapi = 720
+# freetoken = 720
+# omniroute = 720
+# litellm = 720
+
+# =============================================================================
+# Claude Code CLI Configuration
+# =============================================================================
+# [claude]
+# mode = "local"                     # "local" (zero-subscription local compute) or "official" (paid Claude subscription)
+# model = "claude-sonnet-4-5"        # Client model identifier shim for local mode
+# api_key = "dummy-token"            # Dummy API key to bypass OAuth web login in local mode
+# base_url = ""                      # Optional custom endpoint (default: routes to Unified Gateway port 8080 / Strata)
+#
+# Offline Permission Mode:
+# Controls how tool and filesystem authorizations are handled in offline local mode.
+# Available options:
+#   - "smart" (Default): Maps to Claude's native "acceptEdits" mode. Auto-approves file edits and
+#                        read/write operations inside the workspace while maintaining safety guards
+#                        around destructive command executions, giving smooth flow without constant roadblock prompts.
+#   - "yolo"           : Maps to "bypassPermissions" (--dangerously-skip-permissions). Bypasses all confirmation
+#                        prompts unconditionally. Fast and frictionless, but provides no safety layer.
+#   - "default"        : Standard strict behavior. Claude prompts for approval on every file edit and tool run.
+#
+# permission_mode = "smart"
+# dangerously_skip_permissions = false # Legacy backward-compatible toggle (forces "bypassPermissions" when true)
+#
+# Initial Thinking Mode (Offline Local Mode):
+# Controls initial reasoning/thinking behavior for Claude Code CLI against local models.
+# Available options:
+#   - "adaptive" (Default): Models that support thinking will reason adaptively.
+#   - "disabled" / "off"   : Disables thinking/reasoning tokens completely (passes --thinking disabled & MAX_THINKING_TOKENS=0).
+#   - "low" / "medium" / "high" / "xhigh": Passes thinking effort level directly.
+# thinking_mode = "adaptive"
+#
+# Gateway Persona Contract Injection (Tier D Refusal Reduction):
+# Injects the static offline answer contract into the system prompt at the gateway (/v1/messages)
+# for local Claude-native models. Kills C3 premise rejection and unsolicited caveats portably.
+# offline_inject_contract = true
+#
+# Context Window & Auto-Compaction Settings (Local Offline Mode):
+# In local mode, Claude Code's max context and auto-compact threshold are dynamically
+# derived from the active model's ctx_size (e.g. 262,144 tokens from strata_models.json).
+# auto_compact_ratio defines the trigger threshold as a percentage of ctx_size (default: 0.91 -> ~239,000 tokens).
+# auto_compact_ratio = 0.91
+# max_context_tokens = 262144        # Optional explicit override for CLAUDE_CODE_MAX_CONTEXT_TOKENS (default: model spec)
+# auto_compact_window = 239000       # Optional explicit override for CLAUDE_CODE_AUTO_COMPACT_WINDOW (default: ctx_size * auto_compact_ratio)
+#
+# Web Search Policy:
+# In offline local mode (mode = "local"), Anthropic cloud search tools (WebSearch, WebFetch) are ALWAYS
+# disabled/denied in favor of local SearXNG (Port 8088 default).
+# In online normal mode (mode = "official"), cloud search tools remain active by default, but can optionally
+# be disabled here in favor of SearXNG:
+# disallow_cloud_search_online = false
+#
+# Offline Profile Memory (launcher-managed, no key):
+# In local mode, the isolated profile's .claude/local/CLAUDE.md is regenerated on every launch with
+# the SearXNG search policy plus the offline answer contract (literal-answer, no unsolicited caveats).
+# Hand-edits to that file are overwritten by design. Applies to any local Claude native engine in
+# offline local mode; Claude Desktop (gateway mode) is unaffected — its behavior is governed by the
+# shared chat template clause and the gateway path.
+
+# =============================================================================
+# Claude Desktop Application Configuration
+# =============================================================================
+# [claude_desktop]
+# mode = "mcp"                       # "mcp" (delegates local tasks via MCP tool while logged into Pro/Team account)
+#                                    # "gateway" (Developer Mode 3P gateway full UI hijack to port 8080)
+#
+# Permission Mode (Active ONLY in 'gateway' mode):
+# Applies to Claude Desktop ONLY when mode is "gateway" (offline direct against Strata / LocalAI).
+# In official online "mcp" mode, permissions are managed directly by official Claude account and GUI policies.
+# When omitted, inherits from [claude].permission_mode (default: "smart" -> "acceptEdits").
+# permission_mode = "smart"           # "smart" (acceptEdits) | "yolo" (bypassPermissions) | "default"
+#
+# Initial Thinking Mode (Active ONLY in 'gateway' mode):
+# Applies to Claude Desktop ONLY when mode is "gateway" (offline direct against Strata / LocalAI).
+# In official online "mcp" mode, thinking follows official Claude account behavior.
+# When omitted, inherits from [claude].thinking_mode (default: "adaptive").
+# thinking_mode = "adaptive"         # "adaptive" | "disabled" | "low" | "medium" | "high" | "xhigh"
+#
+# Gateway Persona Contract Injection:
+# Injects the static offline answer contract into the system prompt at the gateway (/v1/messages)
+# for Claude Desktop in offline gateway mode. Inherits from [claude].offline_inject_contract if omitted.
+# offline_inject_contract = true
+#
+# Web Search Policy:
+# In offline gateway mode (mode = "gateway"), Anthropic cloud search is ALWAYS disabled in favor of SearXNG.
+# In online normal mode (mode = "mcp"), cloud search remains active by default, but can optionally be disabled:
+# disallow_cloud_search_online = false
+#
+# Context Window & Auto-Compaction Settings (Active ONLY in 'gateway' mode):
+# These custom context and auto-compact window settings apply to Claude Desktop ONLY
+# when mode is "gateway" (offline direct against Strata / LocalAI).
+# When mode is "mcp", there is NO option/injection for custom local context, as official
+# Anthropic GUI sessions handle context limits in the cloud.
+# In gateway mode, settings inherit from [claude] or active model specs (e.g. 262,144) unless overridden:
+# auto_compact_ratio = 0.91          # Gateway mode compaction ratio trigger (default: inherits [claude].auto_compact_ratio)
+# max_context_tokens = 262144        # Gateway mode explicit override for Desktop max context tokens
+# auto_compact_window = 239000       # Gateway mode explicit override for Desktop auto compact window
+
+# =============================================================================
+# LiteLLM Universal Proxy Engine Configuration
+# Translates Anthropic Messages API (/v1/messages) to OpenAI API (/v1/chat/completions)
+# across all local engines (llama-server, TabbyAPI, FreeToken, Strata, OmniRoute).
+# Used automatically when Claude Code CLI or Claude Desktop (gateway mode) is run.
+# =============================================================================
+# [litellm]
+# enable = true                       # Enable LiteLLM proxy bridge (default: true)
+# port = 4000                         # Port for LiteLLM proxy (default: 4000)
+# install_behavior = "always_install" # "always_install", "existing", or "never_install"
+# update_behavior = "never_update"    # "never_update", "always_update", or "existing"
+
+# =============================================================================
+# SearXNG Metasearch Engine Settings (Port 8088)
+# Dedicated metasearch service for coding harnesses (Hermes, Pi, DSH, Claude)
+# =============================================================================
+# Available Modes:
+#   - "wsl_docker" (Default): Headless Docker Engine inside WSL2 (~400MB RAM, zero Docker Desktop bloat)
+#   - "native"              : Windows-native Python/Waitress runner via uv (~130MB RAM, 0 Docker/WSL)
+#   - "remote"              : Remote public or private SearXNG instance (0 MB local RAM)
+#   - "disabled"            : Disable SearXNG integration
+[searxng]
+enabled = true
+mode = "wsl_docker"
+port = 8088
+remote_url = "https://searx.be"
+# Upstream search engines/providers to query. Supports "duckduckgo", "brave", "wikipedia", "google", "github", etc.
+upstream_engines = ["duckduckgo", "brave", "wikipedia", "google", "github"]
+max_results = 10              # Maximum number of search results to return (top 10 results instead of 5)
+categories = "general"        # Primary category filter (e.g. 'general', 'it', 'science')
+auto_fallback_native = true   # Auto-fall back to zero-overhead in-process search if port 8088 is offline
+timeout = 8.0                 # Upstream search query timeout in seconds
+wsl_distro = "Ubuntu-26.04"     # Target WSL distro (auto-provisions Ubuntu-26.04 LTS if zero installs exist)
+wsl_container_name = "searxng"
+uwsgi_workers = 1             # Capped to 1 worker to drop container memory usage down to ~150 MB
+uwsgi_threads = 4
+limiter = false               # CRITICAL: Disables token bucket limiter to prevent agent HTTP 429 loops
+
+# =============================================================================
+# REA (Reverse Engineer Anything) MCP Toolkit Configuration
+# =============================================================================
+# Enables REA's MCP reverse-engineering server across supported harnesses (Claude, Pi, etc.)
+# Toggle enabled = false to disable REA without deleting repository files.
+[rea]
+enabled = true
+input_schema_profile = "compact"   # "compact" (recommended for token efficiency) or "full"
+
+# =============================================================================
+# Git Client Configuration
+# Automatic checking and updating for Git for Windows
+# =============================================================================
+# [git]
+# auto_update = false                 # Toggle automatic Git client update on launch (default: false)
+# update_behavior = "never_update"    # "never_update", "always_update", or "existing"
+# update_frequency_hrs = 168        # Check interval in hours (default: inherits global update_frequency_hrs)
+
+
+
+

@@ -1,0 +1,47 @@
+name: turboderp/Qwen3.8-27B-exl3-SC-3.0bpw-H4
+backend: tabbyapi-exl3
+context_size: 65536
+gpu_layers: -1
+parameters:
+  model_folder: turboderp/Qwen3.8-27B-exl3-SC-3.0bpw-H4-V4
+  max_seq_len: 65536
+  cache_size: 65536
+  cache_mode: 8,8
+  vision: false
+  prompt_template: models/peculiar-ragdoll-Qwen-Sharp-Chat-Templates.jinja
+  jinja_templates: true
+  tool_format: qwen3_coder
+  tool_calls_in_reasoning: true
+  draft_model: &id002
+    draft_mode: mtp
+    draft_num_tokens: 1
+    dynamic_draft: false
+    draft_cache_mode: Q8
+  model: models/exl3/turboderp/Qwen3.8-27B-exl3-SC-3.0bpw-H4-V4
+sampling:
+  temperature: 0.6
+  top_p: 0.95
+  top_k: 20
+  min_p: 0.05
+  presence_penalty: 0.0
+  repetition_penalty: 1.0
+reasoning:
+  enabled: true
+  budget_tokens: 4096
+  budget_message: Wait, I'm overthinking this. Let's answer now.
+  template_vars_default: &id001
+    reasoning_effort: medium
+engine_args:
+  vision: false
+  max_seq_len: 65536
+  cache_size: 65536
+  cache_mode: 8,8
+  prompt_template: models/peculiar-ragdoll-Qwen-Sharp-Chat-Templates.jinja
+  jinja_templates: true
+  tool_format: qwen3_coder
+  tool_calls_in_reasoning: true
+  reasoning: true
+  reasoning_budget_tokens: 4096
+  reasoning_budget_message: Wait, I'm overthinking this. Let's answer now.
+  template_vars_default: *id001
+  draft_model: *id002

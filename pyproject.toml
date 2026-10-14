@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "local-ai-launcher"
+version = "1.0.0"
+description = "Unified Local AI Serving & Multi-Harness Coding Agent Orchestrator with High-Fidelity Hardware Profiles"
+readme = "README.md"
+authors = [
+    { name = "newWayz" }
+]
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.28.0",
+    "httpx>=0.27.0",
+    "pyyaml>=6.0.1",
+    "grpcio>=1.60.0",
+    "protobuf>=4.25.0",
+    "psutil>=5.9.0",
+    "jinja2>=3.1.0",
+    "requests>=2.31.0",
+    "huggingface_hub>=0.23.0",
+    "hf_transfer>=0.1.6",
+    "python-multipart>=0.0.9",
+    "pillow>=10.0.0",
+    "pymupdf>=1.24.0",
+    "numpy>=1.26.0",
+    "regex>=2024.0.0",
+    "gguf>=0.10.0",
+]
+
+[project.optional-dependencies]
+claude = [
+    "litellm[proxy]>=1.50.0",
+]
+cpu-aux = [
+    "fastembed>=0.3.0",
+    "onnxruntime>=1.17.0",
+]
+voice = [
+    "openvino>=2024.0.0",
+    "soundfile>=0.12.1",
+    "sounddevice>=0.4.6",
+    "pyperclip>=1.8.2",
+]
+test = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "anyio>=4.0.0",
+]
+all = [
+    "fastembed>=0.3.0",
+    "onnxruntime>=1.17.0",
+    "openvino>=2024.0.0",
+    "soundfile>=0.12.1",
+    "sounddevice>=0.4.6",
+    "pyperclip>=1.8.2",
+    "litellm[proxy]>=1.50.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "anyio>=4.0.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["local_ai_launcher*"]
+
+[tool.pytest.ini_options]
+testpaths = ["local_ai_launcher/tests"]
+asyncio_mode = "auto"

@@ -1,0 +1,21 @@
+memory:
+  backend: mnemosyne
+  db_path: C:\aiWorkspace\local_ai_launcher\config\mnemosyne\memory.db
+  sqlite_options:
+    journal_mode: WAL
+  compression:
+    enabled: true
+    threshold: 0.5
+    protect_first_n: 3
+    protect_last_n: 8
+    proactive_prune_tokens: 13107
+    idle_compact_after_seconds: 1800
+
+  ingestion:
+    system_files:
+      - C:\aiWorkspace\local_ai_launcher\config\USER.md
+
+    tags:
+      - user-preference
+      - hermes:task-history
+      - hermes:tool-quirk

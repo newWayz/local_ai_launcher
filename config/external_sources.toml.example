@@ -1,0 +1,105 @@
+# =============================================================================
+# Workspace External Sources Registry (external_sources.toml)
+# Managed by local_ai_launcher Skill & Tool Lifecycle Subsystem
+#
+# Defines upstream Git repositories for skills, suites, and external workflows.
+# Cloned into C:\aiWorkspace\.agents\vendor\ and projected as clean router
+# gateways into C:\aiWorkspace\.agents\skills\ to prevent prompt token bloat.
+#
+# Custom Skill Insurance:
+#   - Tier 1 (Builtin): local_ai_launcher/skills/ (offline, checked into git)
+#   - Tier 2 (External): external_sources.toml (git-tracked registry of upstream suites)
+# =============================================================================
+
+[skills.sources.gstack]
+git = "https://github.com/garrytan/gstack.git"
+branch = "main"
+router_path = ""
+expose_name = "gstack"
+post_update = "setup"
+enabled = true
+description = "Router for the gstack skill suite: QA, review, ship, browse, planning, security, and debugging."
+
+[skills.sources.hyperframes]
+git = "https://github.com/heygen-com/hyperframes.git"
+branch = "main"
+router_path = "skills/hyperframes"
+expose_name = "hyperframes"
+enabled = true
+description = "Mandatory entry point for HyperFrames video, motion graphics, and HTML animation suite."
+
+[skills.sources.remotion]
+git = "https://github.com/remotion-dev/remotion.git"
+branch = "main"
+router_path = ".agents/skills/remotion-best-practices"
+expose_name = "remotion-best-practices"
+enabled = true
+description = "Router for all Remotion video creation, React markup, studio, and rendering skills."
+
+[skills.sources.superpowers]
+git = "https://github.com/obra/superpowers.git"
+branch = "main"
+router_path = "skills/using-superpowers"
+expose_name = "using-superpowers"
+enabled = true
+description = "Superpowers agentic software engineering workflows and orchestration."
+expose_subskills = [
+    "skills/brainstorming",
+    "skills/systematic-debugging",
+    "skills/test-driven-development",
+    "skills/writing-plans",
+    "skills/executing-plans",
+    "skills/subagent-driven-development",
+    "skills/verification-before-completion"
+]
+
+[skills.sources.orca]
+git = "https://github.com/stablyai/orca.git"
+branch = "main"
+router_path = "skills/orca-cli"
+expose_name = "orca-cli"
+enabled = true
+description = "Operate Orca worktrees, terminals, and automations."
+expose_subskills = [
+    "skills/orchestration"
+]
+
+[skills.sources.humanizer]
+git = "https://github.com/blader/humanizer.git"
+branch = "main"
+router_path = ""
+expose_name = "humanizer"
+enabled = true
+description = "Detects AI writing patterns and rewrites text in authentic, natural builder voice."
+
+[skills.sources.impeccable]
+git = "https://github.com/pbakaus/impeccable.git"
+branch = "main"
+router_path = ""
+expose_name = "impeccable"
+enabled = true
+description = "Frontend design, visual polish, typography, and UX review."
+
+[skills.sources.skill-inspector]
+git = "https://github.com/NVIDIA/SkillSpector.git"
+branch = "main"
+router_path = ""
+expose_name = "skill-inspector"
+enabled = true
+description = "NVIDIA SkillSpector: Audits AI agent skills for safety, trust, and execution integrity."
+
+[skills.sources.watch]
+git = "https://github.com/bradautomates/claude-video.git"
+branch = "main"
+router_path = ""
+expose_name = "watch"
+enabled = true
+description = "Watch and inspect video files/URLs via yt-dlp and ffmpeg."
+
+[skills.sources.find-skills]
+git = "https://github.com/vercel-labs/skills.git"
+branch = "main"
+router_path = "skills/find-skills"
+expose_name = "find-skills"
+enabled = true
+description = "Discovers and evaluates open agent skills from skills.sh."

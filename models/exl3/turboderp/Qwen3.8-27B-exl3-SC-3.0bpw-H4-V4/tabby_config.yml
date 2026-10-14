@@ -1,0 +1,19 @@
+model:
+  vision: false
+  max_seq_len: 65536
+  cache_size: 65536
+  cache_mode: "8,8"
+  prompt_template: models/peculiar-ragdoll-Qwen-Sharp-Chat-Templates.jinja
+  jinja_templates: true
+  tool_format: qwen3_coder
+  tool_calls_in_reasoning: true
+  reasoning: true
+  reasoning_budget_tokens: 4096
+  reasoning_budget_message: "Wait, I'm overthinking this. Let's answer now."
+  template_vars_default:
+    reasoning_effort: "medium"
+  draft_model:
+    draft_mode: mtp
+    draft_num_tokens: 1
+    dynamic_draft: false
+    draft_cache_mode: Q8

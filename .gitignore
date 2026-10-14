@@ -1,0 +1,208 @@
+# ====================================================================
+# Ignore everything by default (allowlist strategy to prevent accidental
+# tracking of large model weights, external checkouts, caches, and runtime data)
+# ====================================================================
+*
+
+# Allow directory traversal for unignored files
+!*/
+
+# ====================================================================
+# Directories to strictly ignore (prevents Git from scanning them;
+# eliminates "Permission denied" warnings and prevents tracking huge trees)
+# ====================================================================
+AppData/
+Desktop/
+Local Settings/
+ntuser.*
+NTUSER.*
+
+# AI runtime, agent brains, state databases, and user profiles
+.agents/
+.cache/
+.claude/
+.cline/
+.dsh/
+.gemini/
+.hermes/
+.hyperframes/
+.local/
+.omniroute/
+.orca/
+.pi/
+.t3/
+.vscode/
+
+# Temporary and build artifacts
+tmp/
+scratch/
+logs/
+.gvs5h/
+*.bak
+uv-cache/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+
+# Cloned repositories, virtualenvs, dependencies, and external binaries
+ai_launcher/
+node_modules/
+uv-bin/
+node/
+llama-cpp/
+tools/
+github/
+go/
+tabbyapi/
+freetoken/
+strata/
+agy-desktop/
+agy-ide/
+orca/
+openlumara/
+test-npm/
+signal-cli-*/
+.venv/
+llmfit/
+*.prune_staging.tmp
+
+# User project directories
+projects/
+
+# Heavy model weights, models subdirs, and binary files
+models/freetoken/
+models/HauhauCS/
+models/ISTA-DASLab/
+models/LuffyTheFox/
+models/SC117/
+models/bartowski/
+models/mudler/
+models/parakeet-tdt-v3-ov/
+models/openvino/
+models/huggingface/
+models/onnx-gaters/
+models/rerankers/
+*.safetensors
+*.gguf
+*.bin
+*.pt
+*.pth
+*.ftw
+*.onnx
+
+# Database and auto-backup files
+*.db
+*.sqlite
+*.sqlite3
+config/backup/
+config/mnemosyne/
+
+# Sensitive files / credentials & machine-specific configs
+accounts.ini
+config/accounts.ini
+auth.json
+credentials.json
+*.key
+*.pem
+.env
+.env.*
+.gitconfig
+USER.md
+config/USER.md
+
+# Windows OS artifacts
+Thumbs.db
+Desktop.ini
+nul
+*.lnk
+
+# ====================================================================
+# Explicit Whitelist: Files to track in the workspace repository
+# ====================================================================
+
+# Repository & Git configuration
+!/.gitignore
+!/pytest.ini
+!/pyproject.toml
+!/LICENSE
+!/README.md
+!/launch.sh
+!/.github/
+!/.github/**
+
+# Workspace documentation
+!/CONTEXT.md
+!/WORKSPACE_ROOT.md
+!/AGENTS.md
+
+# Package configuration
+!package.json
+!package-lock.json
+!.npmrc
+
+# Model preset configuration files
+!models.ini
+!freetokens_models.ini
+!strata_models.json.example
+!local_ai_launcher/strata_models.json.example
+!ft_help.txt
+
+# Launcher scripts & convenience web links
+!local_ai_launcher/scripts/
+!local_ai_launcher/scripts/**
+
+# local_ai_launcher package (full source, shims, localai, backends, harnesses, tests)
+!local_ai_launcher/
+!local_ai_launcher/**
+local_ai_launcher/launcher.toml
+local_ai_launcher/launcher.json
+local_ai_launcher/strata_settings.json
+local_ai_launcher/strata_models.json
+local_ai_launcher/strata_models.local.json
+local_ai_launcher/strata-*.json
+launcher.toml
+launcher.json
+strata_settings.json
+strata_models.json
+strata_models.local.json
+
+# LocalAI models and configuration
+!localai/
+!localai/**
+localai/models/.source_manifest.hash
+
+# Workspace configuration
+!config/
+!config/external_sources.toml
+!config/external_sources.toml.example
+config/backup/
+config/mnemosyne/
+config/accounts.ini
+
+# Tracked model configurations (sampler & tabby YAMLs and Jinja templates)
+!models/
+!models/peculiar-ragdoll-Qwen-Sharp-Chat-Templates.jinja
+!models/jinja_template-Hermes3.6-35B-A3B-Uncensored-Genesis-V7-APEX.md
+!models/exl3/
+!models/exl3/**/
+!models/exl3/**/*.yml
+!models/exl3/**/*.yaml
+!models/exl3/**/*.jinja
+
+# ====================================================================
+# Global overrides (never track caches, bytecode, or windows shortcuts)
+# ====================================================================
+**/*.lnk
+**/.cline/**
+.cline/
+.mcp.json
+*.mcp.json
+**/.mcp.json
+models.local.ini
+*.local.ini
+**/resolved_models.ini
+resolved_models.ini
+**/*.py[cod]
+**/__pycache__/**
+localai/models/.source_manifest.hash
+**/.claude/settings.local.json

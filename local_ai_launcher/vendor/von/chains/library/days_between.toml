@@ -1,0 +1,22 @@
+name = "days_between"
+description = "Count the days between two dates."
+
+[[slots]]
+name = "from"
+kind = "datetime"
+ask = "Which is the earlier of the two dates being compared?"
+
+[[slots]]
+name = "to"
+kind = "datetime"
+ask = "Which is the later of the two dates being compared?"
+
+[[steps]]
+op = "elapsed_days"
+args = ["from", "to"]
+out = "days"
+
+[answer]
+mode = "value"
+value = "days"
+describe = "Computed: from {from} to {to} is {days} days (exclusive of the start day)."

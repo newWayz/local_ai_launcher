@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 724.086 1191.2569999999998" width="724.086" height="1191.2569999999998" style="--bg:#1F1F1F;--fg:#CCCCCC;--line:#CCCCCC;--accent:#0078D4;--muted:#CCCCCCCC;--surface:#181818;--border:#CCCCCC;background:var(--bg)">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+  text { font-family: 'Inter', system-ui, sans-serif; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 85%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+  <marker id="arrowhead" markerWidth="8" markerHeight="5" refX="7" refY="2.5" orient="auto">
+    <polygon points="0 0, 8 2.5, 0 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+  <marker id="arrowhead-start" markerWidth="8" markerHeight="5" refX="1" refY="2.5" orient="auto-start-reverse">
+    <polygon points="8 0, 0 2.5, 8 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+</defs>
+<polyline class="edge" data-from="Req" data-to="ChkBruno" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="317.1764166666666,76.9 317.1764166666666,124.9" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="ChkBruno" data-to="IsBruno" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Yes" points="282.47274999999996,298.4183333333333 282.47274999999996,369.12199999999996 228.14266666666663,369.12199999999996 228.14266666666663,449.422" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="IsBruno" data-to="RunBruno" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Yes" points="181.95349999999996,680.3678333333334 181.95349999999996,762.5569999999999 173.60699999999997,762.5569999999999 173.60699999999997,842.8569999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="IsBruno" data-to="CheckHuang" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="No" points="274.3318333333333,680.3678333333334 274.3318333333333,762.5569999999999 328.7818333333333,762.5569999999999 328.7818333333333,830.8569999999999 374.8853333333333,830.8569999999999 374.8853333333333,842.8569999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="ChkBruno" data-to="CheckHuang" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="No" points="351.8800833333333,298.4183333333333 351.8800833333333,437.422 414.5566666666666,437.422 414.5566666666666,842.8569999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="CheckHuang" data-to="RunHuang" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Yes" points="374.8853333333333,879.7569999999998 374.8853333333333,966.4569999999999 243.03849999999994,966.4569999999999 243.03849999999994,1046.7569999999998" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="CheckHuang" data-to="RunOfficial" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="No" points="414.5566666666666,879.7569999999998 414.5566666666666,891.7569999999998 546.4034999999999,891.7569999999998 546.4034999999999,972.0569999999998" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<g class="edge-label" data-from="ChkBruno" data-to="IsBruno" data-label="Yes">
+  <rect x="209.64266666666663" y="376.12199999999996" width="36.658" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="227.97166666666664" y="391.27199999999993" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Yes</text>
+</g>
+<g class="edge-label" data-from="IsBruno" data-to="RunBruno" data-label="Yes">
+  <rect x="155.10699999999997" y="769.5569999999999" width="36.658" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="173.43599999999998" y="784.7069999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Yes</text>
+</g>
+<g class="edge-label" data-from="IsBruno" data-to="CheckHuang" data-label="No">
+  <rect x="313.2818333333333" y="769.5569999999999" width="30.718000000000004" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="328.64083333333326" y="784.7069999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">No</text>
+</g>
+<g class="edge-label" data-from="ChkBruno" data-to="CheckHuang" data-label="No">
+  <rect x="399.0566666666666" y="769.5569999999999" width="30.718000000000004" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="414.4156666666666" y="784.7069999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">No</text>
+</g>
+<g class="edge-label" data-from="CheckHuang" data-to="RunHuang" data-label="Yes">
+  <rect x="224.53849999999994" y="973.4569999999999" width="36.658" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="242.86749999999995" y="988.6069999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Yes</text>
+</g>
+<g class="edge-label" data-from="CheckHuang" data-to="RunOfficial" data-label="No">
+  <rect x="530.9034999999999" y="898.7569999999998" width="30.718000000000004" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="546.2624999999999" y="913.9069999999998" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">No</text>
+</g>
+<g class="node" data-id="Req" data-label="Incoming Model Request" data-shape="rectangle">
+  <rect x="225.43591666666663" y="40" width="183.481" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="317.1764166666666" y="58.45" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Incoming Model Request</text>
+</g>
+<g class="node" data-id="ChkBruno" data-label="Bruno Engine Selected?" data-shape="diamond">
+  <polygon points="317.1764166666666,124.9 421.2874166666666,229.011 317.1764166666666,333.12199999999996 213.06541666666664,229.011" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="317.1764166666666" y="229.011" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Bruno Engine Selected?</text>
+</g>
+<g class="node" data-id="IsBruno" data-label="Is unpruned base Qwen/Huihui 27B?" data-shape="diamond">
+  <polygon points="228.14266666666663,449.422 366.7101666666666,587.9895 228.14266666666663,726.557 89.57516666666666,587.9895" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="228.14266666666663" y="587.9895" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Is unpruned base Qwen/Huihui 27B?</text>
+</g>
+<g class="node" data-id="RunBruno" data-label="Run Bruno Passini Engine
+(llama-cpp-blackwell/llama-server.exe)
+• Symmetric q8/q8 or q4/q4 KV cache
+• LLAMA_NV_HYBRID_KV env" data-shape="rectangle">
+  <rect x="40" y="842.8569999999999" width="267.21399999999994" height="87.60000000000001" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="173.60699999999997" y="886.6569999999998" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="173.60699999999997" dy="-20.8">Run Bruno Passini Engine</tspan><tspan x="173.60699999999997" dy="16.900000000000002">(llama-cpp-blackwell/llama-server.exe)</tspan><tspan x="173.60699999999997" dy="16.900000000000002">• Symmetric q8/q8 or q4/q4 KV cache</tspan><tspan x="173.60699999999997" dy="16.900000000000002">• LLAMA_NV_HYBRID_KV env</tspan></text>
+</g>
+<g class="node" data-id="CheckHuang" data-label="CheckHuang" data-shape="rectangle">
+  <rect x="335.21399999999994" y="842.8569999999999" width="119.01400000000001" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="394.72099999999995" y="861.3069999999999" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">CheckHuang</text>
+</g>
+<g class="node" data-id="RunHuang" data-label="Run Raymond Huang Engine
+(llama-cpp-huang/llama-server.exe)
+• --kv-stream-arena-mib 2240
+• --spec-type draft-mtp
+• Auto-ASCII pruning if base 27B IQ4_XS" data-shape="rectangle">
+  <rect x="105.35599999999994" y="1046.7569999999998" width="275.365" height="104.50000000000001" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="243.03849999999994" y="1099.0069999999998" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="243.03849999999994" dy="-29.250000000000004">Run Raymond Huang Engine</tspan><tspan x="243.03849999999994" dy="16.900000000000002">(llama-cpp-huang/llama-server.exe)</tspan><tspan x="243.03849999999994" dy="16.900000000000002">• --kv-stream-arena-mib 2240</tspan><tspan x="243.03849999999994" dy="16.900000000000002">• --spec-type draft-mtp</tspan><tspan x="243.03849999999994" dy="16.900000000000002">• Auto-ASCII pruning if base 27B IQ4_XS</tspan></text>
+</g>
+<g class="node" data-id="RunOfficial" data-label="Run Official llama-server.exe
+(llama-cpp/llama-server.exe)
+• Qwen 3.6 35B MoE (n-cpu-moe = 20/22)
+• Gemma 12B, Tiel 35B, dense offload
+• Standard upstream llama.cpp runtime" data-shape="rectangle">
+  <rect x="408.72099999999995" y="972.0569999999998" width="275.365" height="104.50000000000001" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="546.4034999999999" y="1024.3069999999998" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="546.4034999999999" dy="-29.250000000000004">Run Official llama-server.exe</tspan><tspan x="546.4034999999999" dy="16.900000000000002">(llama-cpp/llama-server.exe)</tspan><tspan x="546.4034999999999" dy="16.900000000000002">• Qwen 3.6 35B MoE (n-cpu-moe = 20/22)</tspan><tspan x="546.4034999999999" dy="16.900000000000002">• Gemma 12B, Tiel 35B, dense offload</tspan><tspan x="546.4034999999999" dy="16.900000000000002">• Standard upstream llama.cpp runtime</tspan></text>
+</g>
+</svg>

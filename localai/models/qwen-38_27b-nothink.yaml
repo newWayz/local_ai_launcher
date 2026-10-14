@@ -1,0 +1,69 @@
+name: qwen-38_27b-nothink
+backend: llama-cpp
+context_size: 131000
+gpu_layers: -1
+parameters:
+  threads: 16
+  threads_batch: 16
+  batch_size: 4096
+  ubatch_size: 512
+  flash_attn: 'on'
+  cache_reuse: 0
+  ctk: turbo3
+  ctv: turbo4
+  chat_template_file: models/chat_template_qwen38_sharp_v22.4.0_medium-convergent.jinja
+  jinja: true
+  spec_type: draft-mtp
+  spec_draft_n_max: 2
+  spec_draft_p_min: 0.75
+  parallel: 1
+  model: models/llama-server/ISTA-DASLab/Qwen3.8-27B-GSQ-RCO/Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf
+sampling:
+  temperature: 0.6
+  top_p: 0.95
+  top_k: 20
+  min_p: 0.05
+  presence_penalty: 0.0
+  repetition_penalty: 1.0
+reasoning:
+  enabled: false
+  budget_tokens: 0
+engine_args:
+  host: 127.0.0.1
+  port: '9931'
+  flash-attn: 'on'
+  jinja: 'on'
+  ngl: '-1'
+  cache-reuse: '0'
+  ctk: turbo3
+  ctv: turbo4
+  parallel: '1'
+  load-mode: none
+  no-webui: 'True'
+  fit: 'off'
+  threads: '16'
+  threads-batch: '16'
+  image-min-tokens: '1024'
+  image-max-tokens: '4096'
+  batch-size: '4096'
+  ubatch-size: '512'
+  presence-penalty: '0.0'
+  dry-multiplier: '0.0'
+  dry-base: '1.75'
+  dry-allowed-length: '2'
+  dry-penalty-last-n: '4096'
+  reasoning-budget: '0'
+  model: models/llama-server/ISTA-DASLab/Qwen3.8-27B-GSQ-RCO/Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf
+  chat-template-file: models/chat_template_qwen38_sharp_v22.4.0_medium-convergent.jinja
+  alias: qwen-38_27b-nothink
+  ctx-size: '131000'
+  temp: '0.6'
+  top-p: '0.95'
+  top-k: '20'
+  min-p: '0.05'
+  repeat-penalty: '1.0'
+  reasoning: 'off'
+  spec-type: draft-mtp
+  spec-draft-n-max: '2'
+  spec-draft-p-min: '0.75'
+mmap: false

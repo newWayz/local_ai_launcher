@@ -1,0 +1,10 @@
+model:
+  vision: true
+  max_seq_len: 100352
+  cache_size: 100352
+  cache_mode: "8,8"
+  reasoning: true
+  reasoning_budget_tokens: 8192
+  reasoning_budget_message: "Wait, I'm overthinking this. Let's answer now."
+  template_vars_default:
+    reasoning_effort: "medium"

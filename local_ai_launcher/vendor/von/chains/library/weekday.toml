@@ -1,0 +1,17 @@
+name = "weekday"
+description = "Name the day of the week that a given calendar date falls on."
+
+[[slots]]
+name = "date"
+kind = "datetime"
+ask = "Which date's weekday is being asked about?"
+
+[[steps]]
+op = "weekday_name"
+args = ["date"]
+out = "dow"
+
+[answer]
+mode = "value"
+value = "dow"
+describe = "Computed: {date} falls on a {dow}."

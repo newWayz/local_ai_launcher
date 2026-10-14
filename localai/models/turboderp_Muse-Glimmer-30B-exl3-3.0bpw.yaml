@@ -1,0 +1,35 @@
+name: turboderp/Muse-Glimmer-30B-exl3-3.0bpw
+backend: tabbyapi-exl3
+context_size: 100352
+gpu_layers: -1
+parameters:
+  model_folder: turboderp/Muse-Glimmer-30B-exl3-3.0bpw
+  max_seq_len: 100352
+  cache_size: 100352
+  cache_mode: 8,8
+  vision: true
+  prompt_template: ''
+  jinja_templates: true
+  tool_format: qwen3_coder
+  tool_calls_in_reasoning: true
+  draft_model: {}
+  model: models/exl3/turboderp/Muse-Glimmer-30B-exl3-3.0bpw
+sampling:
+  temperature: 1.0
+  top_p: 0.95
+  top_k: 64
+reasoning:
+  enabled: true
+  budget_tokens: 8192
+  budget_message: Wait, I'm overthinking this. Let's answer now.
+  template_vars_default: &id001
+    reasoning_effort: medium
+engine_args:
+  vision: true
+  max_seq_len: 100352
+  cache_size: 100352
+  cache_mode: 8,8
+  reasoning: true
+  reasoning_budget_tokens: 8192
+  reasoning_budget_message: Wait, I'm overthinking this. Let's answer now.
+  template_vars_default: *id001

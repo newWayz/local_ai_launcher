@@ -1,0 +1,7 @@
+name: gemma-4-director
+backend: blackwell-llama
+context_size: 32768
+gpu_layers: 0
+parameters:
+  threads: 8
+  model: models/llama-server/HauhauCS/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced-Q4_K_M.gguf

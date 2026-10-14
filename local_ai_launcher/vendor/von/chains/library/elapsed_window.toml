@@ -1,0 +1,45 @@
+name = "elapsed_window"
+description = "Compute the real elapsed time between two date/times that may be in different time zones, then compare it to a required minimum or maximum number of hours."
+
+[[slots]]
+name = "first"
+kind = "datetime"
+ask = "Which is the first of the two moments being compared (for example the previous dose, or the end of the previous shift)?"
+prefer = "with_time"
+
+[[slots]]
+name = "second"
+kind = "datetime"
+ask = "Which is the second of the two moments being compared (for example the dose being checked, or the start of the next shift)?"
+prefer = "with_time"
+
+[[slots]]
+name = "zone_first"
+kind = "timezone"
+ask = "Which time zone does the earlier moment's clock time belong to?"
+optional = true
+
+[[slots]]
+name = "zone_second"
+kind = "timezone"
+ask = "Which time zone does the later moment's clock time belong to?"
+optional = true
+
+[[steps]]
+op = "in_zone"
+args = ["first", "zone_first"]
+out = "first_z"
+
+[[steps]]
+op = "in_zone"
+args = ["second", "zone_second"]
+out = "second_z"
+
+[[steps]]
+op = "elapsed_hours_abs"
+args = ["first_z", "second_z"]
+out = "elapsed_h"
+
+[answer]
+mode = "ask"
+describe = "Computed: real elapsed time from {first_z} to {second_z} is {elapsed_h} hours."

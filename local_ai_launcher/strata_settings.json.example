@@ -1,0 +1,54 @@
+{
+  "_comment": "Strata 125B MoE Engine Settings (located at local_ai_launcher/strata_settings.json for easy maintenance)",
+  
+  "spec": 4,
+  "_comment_spec": "Speculative decoding verify window tokens (default: 4 -> 1 accepted token + 3 MTP draft tokens; T >= 2)",
+  
+  "spec_min_p": 0.50,
+  "_comment_spec_min_p": "Minimum draft acceptance probability threshold for entering the verify window (0.0 - 1.0; default: 0.50)",
+  
+  "suffix_draft": 3,
+  "_comment_suffix_draft": "Prompt lookup drafter tokens: draft repeats from earlier context for code edits/JSON (default: 3; 0 = MTP only)",
+  
+  "coupled_draft": true,
+  "_comment_coupled_draft": "Coupled draft sampling for MTP drafter under sampling (true: coupled drafts; false: argmax drafts)",
+  
+  "mtp_window": 32768,
+  "_comment_mtp_window": "Context attention window in cells for the draft layer (default: 32768)",
+  
+  "mtp_max_t": 0,
+  "_comment_mtp_max_t": "Cap MTP draft window at M tokens (default: 0 = inherit --spec)",
+  
+  "mmap_experts": true,
+  "_comment_mmap_experts": "true: dynamic OS page-cache (mmap); false: resident physical RAM arena (requires ~50.3 GB contiguous physical RAM)",
+  
+  "resident_budget_gib": 56,
+  "_comment_resident_budget_gib": "Explicit RAM budget in GiB for hottest resident experts + lookahead prefetch (default: 56; 0 = pure dynamic mmap)",
+  
+  "brutal_ram_clawback": "light",
+  "_comment_brutal_ram_clawback": "RAM reclamation: 'light' (evict aux services + trim working sets), 'max' (kill heavy user apps), 'off' (none)",
+  
+  "kv_mode": "int8",
+  "_comment_kv_mode": "KV cache quantization: 'int8' (3.19 GiB, full accuracy), 'q4_0' (1.59 GiB, faster), 'k8v4' (2.45 GiB), 'fp16' (6.38 GiB)",
+
+  "kv_resident": 0,
+  "_comment_kv_resident": "KV streaming window: cells per QSA layer in VRAM (0: all in VRAM; min 20480 if enabled, e.g. 20480 or 32768 to offload older context to pinned RAM)",
+
+  "vram_reserve_mib": 700,
+  "_comment_vram_reserve_mib": "Headroom in MiB kept free for OS/DWM compositing (default: 700; keep >= 700 on Windows WDDM to prevent GPU paging across PCIe)",
+  
+  "expert_cache": "auto",
+  "_comment_expert_cache": "VRAM dynamic expert cache slots (default: 'auto' ~4,190 slots on 16GB VRAM, or integer e.g. 4096)",
+  
+  "prefill": "auto",
+  "_comment_prefill": "Batched prompt processing chunk size (default: 'auto' up to 8192; options: 8192, 16384, 32768)",
+  
+  "max_context": 262144,
+  "_comment_max_context": "Maximum context length in tokens (default: 262144 / 256K)",
+  
+  "prompt_cache": 6,
+  "_comment_prompt_cache": "Conversation checkpoints kept between requests in RAM (default: 6, ~118 MB each; 0 = re-read from start)",
+  
+  "fit_max_tokens": true,
+  "_comment_fit_max_tokens": "Clamp requested max_tokens to context capacity instead of rejecting requests (default: true)"
+}

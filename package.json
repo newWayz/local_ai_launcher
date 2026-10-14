@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "@anthropic-ai/claude-code": "^2.1.299",
+    "@deepseek-ai/dsh": "^0.2.0-rc.2",
+    "agent-browser": "^0.33.2",
+    "cowsay": "^1.6.0",
+    "deepseek": "^0.0.2",
+    "is-even": "^1.0.0",
+    "omniroute": "^3.8.49",
+    "opencode-ai": "^1.18.33",
+    "t3": "^0.0.45"
+  },
+  "allowScripts": {
+    "@google/genai": true,
+    "protobufjs": true,
+    "koffi": true
+  }
+}

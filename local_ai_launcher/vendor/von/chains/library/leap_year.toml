@@ -1,0 +1,17 @@
+name = "leap_year"
+description = "Decide whether the year of a date is a leap year (divisible by 4, except centuries not divisible by 400)."
+
+[[slots]]
+name = "date"
+kind = "datetime"
+ask = "Which date's year is being asked about?"
+
+[[steps]]
+op = "is_leap_year"
+args = ["date"]
+out = "leap"
+
+[answer]
+mode = "value"
+value = "leap"
+describe = "Computed: the year of {date} is a leap year: {leap_raw}."
