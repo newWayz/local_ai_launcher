@@ -14,7 +14,10 @@
   - `8085`: Signal CLI Daemon
   - `8088`: SearXNG Portable Metasearch Service (Tier 3 WSL2 Docker Engine default / Tier 2 Native Waitress / Tier 1 Remote; 0 MB GPU VRAM)
 - **Port 8000**: Intel NPU Speech-to-Text (Parakeet TDT V3 transcription endpoint)
+- **Port 4000**: LiteLLM Proxy (Anthropic Messages <-> OpenAI translation for Claude routing)
 - **Port 20128**: OmniRoute Token Compression Proxy
+- **Raw Engine Ports** (behind the gRPC shims): `9931` internal `llama-server`, `9933` FreeToken direct HTTP, `9934` Strata native engine. `9935` is retired (use 8081).
+- **Port 9932**: MCP tool proxy (Antigravity Desktop/IDE); **Port 3773**: T3 internal web interface
 
 ## 2. Core Guardrails for AI Modifiers
 1. **Preserve Blackwell Flagship Tuning**: Never lower or dilute context lengths, threads, or hybrid-KV cache allocations for the flagship reference profile (`blackwell_16gb`) in `models.ini` or `presets.py`. Local hardware changes belong in `launcher.toml` or `models.local.ini`.
@@ -22,3 +25,4 @@
 3. **Dynamic Path Hygiene**: Never hardcode absolute filesystem paths. Always import `LOCAL_AI_LAUNCHER_DIR` or `AI_WORKSPACE_DIR` from `local_ai_launcher.paths`.
 4. **Sequential Test Discipline**: Run `pytest local_ai_launcher/tests` to verify modifications. Never launch parallel test executions; port cleanup fixtures bind to identical TCP sockets.
 5. **Git Cleanliness**: Never commit machine-specific state (`launcher.toml`, `models.local.ini`, `.env`, or `.lnk` binary shortcuts).
+6. **Existing Seams — Reuse, Don't Re-implement**: harness/engine capability routing (offline capability, meta-harness, preload priority) lives in `harness_model.py`; update cadence/scheduling lives in `update_frequency.py` (`config/update_state.json`); llama fork variant selection lives in `backends/llamacpp_router.py` (never hardcode a single fork).

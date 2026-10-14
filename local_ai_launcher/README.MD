@@ -9,10 +9,11 @@
 
 ## 1. Architecture & Core Capabilities
 
-- **Unified API Gateway**: Exposes OpenAI-compatible endpoints (`/v1/chat/completions`, `/v1/models`, `/v1/embeddings`) backed by [LocalAI](https://github.com/mudler/LocalAI) architecture. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+- **Unified API Gateway**: Exposes OpenAI-compatible endpoints (`/v1/chat/completions`, `/v1/completions`, `/v1/responses`, `/v1/models`, `/v1/rerank`, `/v1/decide`) plus the native **Anthropic Messages API** (`/v1/messages`, `/v1/messages/count_tokens`) backed by [LocalAI](https://github.com/mudler/LocalAI) architecture. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/CLAUDE_HARNESS.md`](docs/CLAUDE_HARNESS.md).
 - **Dynamic Mutual Exclusion (`SINGLE_ACTIVE_BACKEND=true`)**: Automatically swaps and evicts models between Blackwell GGUF (`sm_120`), TabbyAPI EXL3, FreeToken NVFP4, and Strata (125B MoE) without VRAM collisions or manual restarts. See [`docs/BLACKWELL_REFERENCE.md`](docs/BLACKWELL_REFERENCE.md) and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
-- **Real-Time Model Loop Mitigation**: Gateway-level engine in [`localai/loop_detector.py`](localai/loop_detector.py) evaluates n-gram repetition ($N=16$, threshold $\ge 4$) and cyclic autocorrelation ($p \in \{1, 2, 3\}$, similarity $\ge 0.93$). Immediately calls `call.cancel()` on upstream gRPC streams to halt GPU token generation, synthesizes closing `</think>` tags, and injects redirection notices.
-  - **Tuning rationale (2026-10-09, see `C:/aiWorkspace/tmp/local_llm_harness_stall_analysis.md`)**: n-gram threshold raised 3 -> 4 because exact 16-word runs repeated 3x occur legitimately in code comments (triple-backtick / parametrized tables); the 4th repetition still catches true loops ~0.6-2 s later at ~50 tok/s. Cycle similarity raised 0.85 -> 0.93 because near-identical code/JSON "sentences" (one identifier differing, Jaccard $\approx (n-1)/(n+1)$ for $n$ unique words) false-positived at 0.85 (2 logged trips: DataFrame rows, libuv boilerplate); 0.93 requires $\ge 23$ unique shared words, evicting the 13-20-word boilerplate band while verbatim prose loops ($\ge 0.95$) remain caught. Net effect: 0 demonstrated true positives lost (all loop classes are caught by the n-gram path), false-positive cost (cancelled 60k-token turn + 180 s sampler perturbation) eliminated.
+- **Real-Time Model Loop Mitigation**: Gateway-level engine in [`localai/loop_detector.py`](localai/loop_detector.py) evaluates n-gram repetition and cyclic autocorrelation ($p \in \{1, 2, 3\}$). Immediately calls `call.cancel()` on upstream gRPC streams to halt GPU token generation, synthesizes closing `</think>` tags, and injects redirection notices.
+  - **Parameter layers**: code defaults are `loop_detector_ngram_size = 8`, `loop_detector_ngram_threshold = 3`, `loop_detector_cycle_similarity = 0.82` ([`config.py`](config.py)); the shipped `launcher.toml` tunes them to **12-gram / 5 repeats / 0.93 similarity** with `min_sentence_len = 40` (do not set the threshold to 3 or below — `'''`-style code comments false-positive). Inside code blocks the effective threshold is automatically `ngram_threshold + 2` to tolerate parametrized test tables.
+  - **Tuning rationale (2026-10-09, see `C:/aiWorkspace/tmp/local_llm_harness_stall_analysis.md`)**: cycle similarity raised 0.85 -> 0.93 because near-identical code/JSON "sentences" (one identifier differing, Jaccard $\approx (n-1)/(n+1)$ for $n$ unique words) false-positived at 0.85 (2 logged trips: DataFrame rows, libuv boilerplate); 0.93 requires $\ge 23$ unique shared words, evicting the 13-20-word boilerplate band while verbatim prose loops ($\ge 0.95$) remain caught. The repeat threshold was raised above 3 for the same class of false positives (exact 16-word runs repeated 3x occur legitimately in code comments). Net effect: 0 demonstrated true positives lost, false-positive cost (cancelled 60k-token turn + 180 s sampler perturbation) eliminated.
 - **Dual-Tier CPU / GPU Dispatcher**: CPU auxiliary microservices handle sub-15ms discrete decisions and passage reranking with **0 MB GPU VRAM**, freeing the RTX 5080 for deep reasoning models (e.g. Qwen 3.8 27B / Qwen 3.8 Flash-Next 125B MoE).
 - **Sub-30ms TTFT Preloader**: [`context_preloader.py`](context_preloader.py) pre-evaluates system prompts and tool schemas into the local LLM KV cache at launch (`max_tokens=1`), slashing Time To First Token from ~2.5s to **<30ms** for Pi, Hermes, and T3.
 - **Skill Suite Gateway**: [`skills_manager.py`](skills_manager.py) manages upstream Git skill suites (`gstack`, `superpowers`, etc.) via shallow clones and exposes clean router junctions to harnesses, cutting prompt overhead from **~11.4k to ~1.2k tokens (90% reduction)**.
@@ -26,9 +27,12 @@
 | **8080** | **LocalAI Core Gateway** | Primary API for all coding agents (`http://localhost:8080/v1`) |
 | **8081** | **CPU llama-server** | CPU-only Media Director (`-ngl 0`, Lion Cove P-cores, Gemma 4 Vision / text) |
 | **8082** | **CPU Reranker** | Cross-encoder passage reranker (`bge-reranker-v2-m3` on `/v1/rerank`) |
-| **8083** | **CPU CLM / Decision Gater** | Sub-15ms choices & tool shortlisting (`open-jev-deberta-v3-large` or `clm-8b` on `/v1/decide`, `/v1/shortlist`) |
+| **8083** | **CPU von System One Gater** | Sub-15ms choices & tool shortlisting (`wfzyx/von` ModernBERT on `/v1/decide`, `/v1/systemone`, `/v1/tripwire`, `/v1/shortlist`) — replaced deprecated `open-jev-deberta-v3-large` / `clm-8b` |
+| **8084** | **CPU Decider-4B Engine** | Multi-slot extraction & DOM action evaluation (`Mapika/decider-4b-v2.1` on `/v1/decider/slots`, `/v1/decider/dom`; raw C++ inference proxied to 8081; port 9935 retired) |
 | **8085** | **Hermes Signal Daemon** | Dedicated Signal CLI gateway daemon |
+| **8088** | **SearXNG Portable Metasearch** | Privacy web search for offline agents (WSL2-Docker / native Waitress / remote tiers) |
 | **8000** | **Intel NPU Speech-to-Text** | Offline Parakeet TDT V3 transcription API (`/v1/audio/transcriptions`) |
+| **4000** | **LiteLLM Proxy** | Anthropic Messages ↔ OpenAI translation proxy for engines without native `/v1/messages` |
 | **20128** | **OmniRoute Proxy** | Token compression proxy routing to 8080 |
 | **9940** | **Blackwell / llama.cpp Shim** | Internal gRPC shim for GGUF backends (raw `llama-server` on `9931`) |
 | **9941** | **TabbyAPI gRPC Shim** | Internal gRPC shim for ExLlamaV3 (EXL3) backends |
@@ -53,15 +57,32 @@ python -m local_ai_launcher
 | :--- | :--- | :--- |
 | `--harness [names...]` | Coding harnesses to launch into Windows Terminal | `--harness orca pi`<br>`--harness agy` (online only)<br>`--harness none` (voice-to-text only) |
 | `--model [alias]` | Set initial active model alias | `--model qwen-38_27b-blackwell-256k-think`<br>`--model strata-iq3s` |
-| `--gui` / `--headless` | Open browser WebUI cockpit or run silently | `python -m local_ai_launcher --gui` |
+| `--port [n]` | Override LocalAI API port (default 8080) | `--port 8080` |
+| `--start-dir [path]` | Initial working directory for harnesses | `--start-dir C:\aiWorkspace\projects` |
+| `--gui` / `--headless` / `--no-gui` | Open browser WebUI cockpit or run silently | `python -m local_ai_launcher --gui` |
 | `--no-omniroute` | Direct connection to LocalAI (bypasses compression proxy) | `--no-omniroute` |
 | `--no-preload` | Skip initial model preloading into VRAM | `--no-preload` |
 | `--cpu-only` | Force backend inference onto CPU without CUDA | `--cpu-only` |
+| `--no-verify` | Disable Mnemosyne DB verification | `--no-verify` |
+| `--build-ui` | Build Hermes Web UI | `--build-ui` |
+| `--download-model` / `--no-download-model` | Always / never auto-download missing model files | `--download-model` |
+| `--install-localai` / `--no-install-localai` | Always / never clone official LocalAI repo | `--install-localai` |
+| `--update-localai` / `--no-update-localai` | Always / never update LocalAI from upstream | `--update-localai` |
+| `--sync-skills` / `--update-skills` | Sync gateway junctions / pull vendor suite updates, then exit | `--sync-skills` |
+| `--force-update` | Force updates regardless of frequency interval | `--force-update` |
+| `--update-frequency-hrs [v]` | Global update cadence (`0`, `24`, `168`, `always`, `daily`, `weekly`, `never`) | `--update-frequency-hrs 168` |
+| `--update-git` / `--no-update-git` | Always / never check-and-update Git | `--no-update-git` |
+| `--pi-search-workflow [mode]` | Pi web search workflow (`auto-summary`, `none`, `summary-review`) | `--pi-search-workflow summary-review` |
+| `--pi-search-browser` | Browser popup for Pi web search curation | `--pi-search-browser` |
+| `--claude-mode [mode]` | Claude Code routing: `local` (offline 8080), `official` (Anthropic cloud), `local_claude_native` (native `/v1/messages`) | `--claude-mode local_claude_native` |
+| `--claude-desktop-mode [mode]` | Claude Desktop: `mcp`, `gateway`, `disabled`, `off` | `--claude-desktop-mode mcp` |
+| `--local-claude-native-engine(s)` | Engine(s) supporting native Anthropic Messages routing | `--local-claude-native-engine strata` |
 
 ### Supported Coding Agent Harnesses
-- **Offline Agents**: Orca ADE (`orca`), Pi (`pi`), Hermes (`hermes`), DeepSeek (`deepseek`), OpenCode (`opencode`), Pie (`pie`), T3 (`t3`), OpenLumara (`openlumara`), Llama Server WebUI (`ls`).
-- **Online-Only Agents**: Google Antigravity CLI (`agy`), Antigravity IDE (`agy-ide`), Antigravity Desktop (`agy-desktop`).
+- **Offline Agents**: Orca ADE (`orca`), Pi (`pi`), Hermes (`hermes`), DeepSeek (`deepseek`/`dsh`), OpenCode (`opencode`), Pie (`pie`), T3 Code (`t3`/`t3code`), OpenLumara (`openlumara`/`lumara`), Llama Server WebUI (`ls`), Claude Code CLI (`claude`/`claude-local`, aliases `claude-code`, `claudecode`), Claude Desktop (`claude-desktop`/`claude-desktop-gateway`).
+- **Online-Only Agents**: Google Antigravity CLI (`agy`), Antigravity IDE (`agy-ide`), Antigravity Desktop (`agy-desktop`), Claude Code Official (`claude-official`/`claude-code-official`).
 - **Standalone Dictation**: `none` (runs Intel NPU voice daemon with 0 MB LLM VRAM consumption).
+- See [`docs/CLAUDE_HARNESS.md`](docs/CLAUDE_HARNESS.md) for the full Claude adapter mode matrix (30 registry keys, desktop `mcp`/`gateway` modes).
 
 ---
 
@@ -96,16 +117,16 @@ voice_dictation_hotkey = "f8"
 
 ---
 
-## 5. CPU Auxiliary Subsystem (Ports 8081–8083)
+## 5. CPU Auxiliary Subsystem (Ports 8081–8085, 8088)
 
 The launcher implements a **System 1 (CPU Fast-Path) / System 2 (GPU Deep Reasoning)** dual-tier architecture:
 
 1. **CPU Reranker (Port 8082)**: Runs `BAAI/bge-reranker-v2-m3` via FastEmbed/OpenVINO CPU for cross-encoder passage ranking (`/v1/rerank`), dropping irrelevant context before GPU invocation.
-2. **CPU Decision Gater & CLM (Port 8083)**: Executes zero-generation typed decisions, tool shortlisting, and security triage (`/v1/decide`, `/v1/shortlist`):
-   - **`com-kotobalabs/open-jev-deberta-v3-large`** *(Default)*: 435M bidirectional dual-encoder, **~14ms** latency, **~450 MB** RAM footprint (INT8).
-   - **`stanford-nvidia/clm-8b`** *(High-Capacity)*: 8.03B causal decoder with action vector caching, **~35ms** latency on DDR5-6400, **~8.2 GB** RAM footprint (INT8).
-3. **Core Tool Whitelisting**: Foundational tools (`read`, `write`, `edit`, `find`, `grep`, `bash`, `terminal`) are **strictly whitelisted** and never evicted during tool shortlisting, preventing agent hallucination and broken workflows.
-4. **Lion Cove P-Core Affinity**: CPU microservices automatically pin threads to physical P-cores 0–7 (affinity mask `0x00FF`), preventing Windows Thread Director from demoting matrix operations to Skymont E-cores.
+2. **CPU von System One Gater (Port 8083)**: Executes zero-generation typed decisions, multi-question evaluation, safety tripwires, and tool shortlisting via **`wfzyx/von`** (ModernBERT-based non-autoregressive encoder, **~12–15ms**, ~450 MB RAM): endpoints `/v1/decide`, `/v1/systemone`, `/v1/tripwire`, `/v1/shortlist`, `/v1/tools/route`. It **replaced the deprecated** `com-kotobalabs/open-jev-deberta-v3-large` and `CLM-8B` models, which remain accepted as model aliases only.
+3. **CPU Decider-4B Engine (Port 8084)**: `Mapika/decider-4b-v2.1` FastAPI engine for schema-first multi-slot parallel extraction (`/v1/decider/slots`), Mind2Web/MiniWoB++ DOM action evaluation (`/v1/decider/dom` via [`bridges/dom_navigator.py`](bridges/dom_navigator.py)), and MCTS policy priors (`/v1/decider/policy_prior`). Raw C++ inference is proxied to the unified CPU llama-server on 8081 (port 9935 retired).
+4. **Core Tool Whitelisting**: Foundational tools (`read`, `write`, `edit`, `find`, `grep`, `bash`, `terminal`) are **strictly whitelisted** and never evicted during tool shortlisting, preventing agent hallucination and broken workflows.
+5. **Lion Cove P-Core Affinity**: CPU microservices automatically pin threads to physical P-cores 0–7 (affinity mask `0x00FF`), preventing Windows Thread Director from demoting matrix operations to Skymont E-cores.
+6. **SearXNG Metasearch (Port 8088)**: Portable privacy web search (`backends/searxng.py`) with three tiers (WSL2-Docker default / native Waitress / remote), exposed to agents via [`bridges/searxng_mcp.py`](bridges/searxng_mcp.py) — 0 MB GPU VRAM.
 
 ---
 
@@ -163,20 +184,39 @@ python -m local_ai_launcher.skills_manager clean
 ```
 local_ai_launcher/
 ├── __main__.py          # Entrypoint, CLI parsing, service orchestration
-├── config.py            # Global configuration defaults, ports, model catalogs
+├── config.py            # Global configuration defaults, ports, hardware profiles (HARDWARE_PROFILES)
+├── paths.py             # Filesystem paths, topology constants, atomic write helpers
+├── presets.py           # models.ini + models.local.ini layered overlay resolution
+├── prompts.py           # Terminal prompting & interactive helpers
+├── harness_base.py      # Abstract HarnessAdapter base class
+├── harness_model.py     # Harness/engine characteristics registry & capability routing (offline capability, meta-harness)
+├── update_frequency.py  # Update-schedule manager (config/update_state.json, --update-frequency-hrs)
+├── models.py            # Model catalog parser & context compaction calculations
+├── environment.py       # PATH/CUDA setup, uv trampoline self-healing, NTFS junctions
+├── process.py           # Process tracking, WT tab management, graceful shutdown
 ├── dispatcher.py        # Smart Agent Dispatcher (CPU fast-path, circuit breaking)
 ├── context_preloader.py # Sub-30ms TTFT prompt preloading engine
 ├── vram_coordinator.py  # VRAM monitoring & ComfyUI eviction coordinator
+├── memory_clawback.py   # RAM/VRAM reclamation tiers (off / light / max)
+├── mnemosyne.py         # Mnemosyne DB isolation verifier & installer
+├── mcp_server.py        # Tool proxy MCP server (port 9932)
 ├── skills_manager.py    # Git vendor manager & NTFS junction router
-├── backends/            # Engine drivers (Blackwell sm_120, TabbyAPI, FreeToken, NPU voice, CPU microservices)
-├── localai/             # LocalAI gateway core, loop detector, and Cockpit WebUI
-├── shims/               # gRPC shims conforming to backend.proto
-├── harnesses/           # Agent adapters (orca, pi, hermes, agy, t3, opencode, etc.)
-├── bridges/             # GVS5H deep-solve solver and CPU tools CLI bridge
-├── skills/              # Git-tracked builtin custom skills (cpu-tools, deep-solve, wipe-agy-chat)
-├── scripts/             # Troubleshooting launchers, WebUI shortcuts, and desktop generator
-├── docs/                # Architecture, Blackwell tuning, GVS5H guide, and UV prune manual
-└── tests/               # Pytest verification test suite
+├── backends/            # Engine drivers (Blackwell sm_120, Bruno/Huang llama forks + llamacpp_router,
+│                        #   TabbyAPI, FreeToken, Strata, NPU voice, CPU microservices: reranker, von gater,
+│                        #   decider-4b, director; litellm, searxng, omniroute, localai, ascii_pruner,
+│                        #   model_installer)
+├── localai/             # LocalAI gateway core (native_server.py), loop detector, generated model YAML, Cockpit WebUI
+├── shims/               # gRPC shims conforming to backend.proto (blackwell, bruno, huang, tabby, freetoken,
+│                        #   strata) + Pi harness TS extensions (loop_recovery, cpu_tools, auto_cycle)
+├── harnesses/           # Agent adapters (orca, pi, hermes, claude + Claude Desktop, agy, t3, opencode, ...)
+├── bridges/             # GVS5H solver, CPU tools CLI, safe_run (Job Object), dom_navigator,
+│                        #   searxng_mcp, claude_desktop_mcp, orca_openlumara
+├── skills/              # Git-tracked builtin skills (cpu-tools, deep-solve, wipe-agy-chat, update-skills,
+│                        #   reliable-file-read) + scoped/ (per-harness: pi, deepseek)
+├── vendor/              # Vendored runtime deps (von)
+├── scripts/             # Shortcut/launcher scripts, desktop shortcut generator, setup_strata_iq3s.py
+├── docs/                # Architecture, Blackwell tuning, Strata, GVS5H, UV prune, Claude harness, doc-update plan
+└── tests/               # Pytest verification suite (27 test files)
 ```
 
 ---
@@ -191,4 +231,4 @@ $env:PYTHONPATH="."; pytest tests
 # $env:PYTHONPATH="C:\aiWorkspace"; pytest local_ai_launcher/tests
 ```
 
-All **223 unit and integration tests** pass, verifying model routing, gRPC shims, loop detection & cooling recovery, CPU auxiliary services (ports 8081–8083), CLM tool shortlisting guardrails, GVS5H deep-solve, VRAM coordination, skills management, and Windows trampoline self-healing.
+**471 tests collected** (as of 2026-10-14, `pytest --collect-only`) across 27 test files, covering model routing, gRPC shims, loop detection & cooling recovery, CPU auxiliary services (ports 8081–8085), von tool-shortlisting guardrails, Decider-4B, SearXNG offline policy, Claude harness offline contract, GVS5H deep-solve, VRAM coordination, memory clawback, safe_run Job Object containment, skills management, update frequency, and Windows trampoline self-healing.

@@ -4,13 +4,14 @@
 > **Source Base:** `C:\aiWorkspace\ai_launcher`  
 > **Target Base:** `C:\aiWorkspace\local_ai_launcher`  
 > **Guidance Reference:** `C:\aiWorkspace\tmp\localai_analysis.md` & `https://github.com/mudler/LocalAI`  
-> **Status:** Fully Implemented, Integrated, and Verified (223/223 Tests Passing)
+> **Status:** Fully Implemented, Integrated, and Verified (471 tests collected, 27 test files, as of 2026-10-14)  
+> **Code-verified:** 2026-10-14 (see [doc-update-analysis.md](doc-update-analysis.md))
 
 ---
 
 ## 1. Executive Summary & Motivation
 
-The purpose of `local_ai_launcher` is to unify all local LLM serving across all coding harnesses (including **Orca ADE**, **Antigravity**, **Pi**, **Hermes**, **DeepSeek**, **OpenCode**, **Pie**, **T3**, **OpenLumara**, and **llama_server_ui**) and image/video production pipelines (**OmniStudio** / ComfyUI) under [LocalAI](https://github.com/mudler/LocalAI).
+The purpose of `local_ai_launcher` is to unify all local LLM serving across all coding harnesses (including **Orca ADE**, **Antigravity**, **Pi**, **Hermes**, **DeepSeek**, **OpenCode**, **Pie**, **T3**, **OpenLumara**, **llama_server_ui**, **Claude Code CLI**, and **Claude Desktop**) and image/video production pipelines (**OmniStudio** / ComfyUI) under [LocalAI](https://github.com/mudler/LocalAI).
 
 ### The Problem in Legacy `ai_launcher`
 1. **Engine Fragmentation**: `ai_launcher` maintained 3 separate LLM serving loops:
@@ -38,35 +39,51 @@ The workspace structure was kept clean, modular, and fully backwards-compatible 
 ```
 C:\aiWorkspace\local_ai_launcher\
 ├── __init__.py
-├── __main__.py                   # Unified CLI entrypoint (LocalAI + Parakeet + OmniRoute + WT tabs)
-├── config.py                     # Centralized settings (port 8080, shim ports, single active backend)
+├── __main__.py                   # Unified CLI entrypoint (LocalAI + Parakeet + OmniRoute + SearXNG + WT tabs)
+├── config.py                     # Centralized settings (port 8080, shim ports, single active backend, HARDWARE_PROFILES)
 ├── dispatcher.py                 # Smart Agent Dispatcher (CPU fast-path, circuit breaking, connection pooling)
-├── environment.py                # System PATH, CUDA, and environment variable configuration
+├── environment.py                # System PATH, CUDA, uv trampoline self-healing, NTFS junctions
 ├── harness_base.py               # Abstract HarnessAdapter base class
-├── memory_clawback.py            # Aggressive System RAM & VRAM reclamation and process trimming
+├── harness_model.py              # Harness/engine characteristics registry & capability routing (offline capability, meta-harness, preload priority)
+├── update_frequency.py           # Update-schedule manager (daily/weekly/never cadence, config/update_state.json)
+├── memory_clawback.py            # Aggressive System RAM & VRAM reclamation and process trimming (off / light / max tiers)
 ├── mnemosyne.py                  # Mnemosyne DB isolation verifier & installer
 ├── models.py                     # Model catalog parser & context compaction parameter calculations
 ├── paths.py                      # Filesystem paths, topology constants, and atomic write helpers
+├── presets.py                    # models.ini + models.local.ini layered overlay resolution
 ├── process.py                    # Process tracking, WT tab management, and graceful shutdown
+├── prompts.py                    # Terminal prompting & interactive helpers
+├── mcp_server.py                 # Tool proxy MCP server (Port 9932) for Antigravity Desktop / IDE
 ├── skills_manager.py             # Unified Skill Suite Lifecycle, Upstream Git Tracking & Gateway Manager
-├── external_sources.toml         # Tracked declarative registry of external git skill suites & routers
+├── external_sources.toml         # Tracked declarative registry of external git skill suites & routers (11 sources)
 ├── vram_coordinator.py           # VRAM monitor and ComfyUI / Gate 2-3 eviction coordinator
-├── launch.cmd                    # Quick launcher batch script
+├── 1_launch.cmd                  # Quick launcher batch script
 ├── vram_coordinator.cmd          # VRAM coordinator batch script
+├── models.ini                    # 36 git-tracked model presets (Blackwell/Huang GGUF, EXL3, audio/vision variants)
+├── models.local.ini              # Optional, gitignored machine-local preset overrides (merged top-priority by presets.py)
+├── freetokens_models.ini         # FreeToken NVFP4 model catalog
+├── launcher.toml / .example      # User config overrides (loop tuning, hardware profile, strata, claude modes)
+├── strata_models.json / strata_settings.json (+ .example, strata-*.json presets)  # Strata pack/model settings
+├── hermes_system_prompt.txt / _strata.txt, hermes_tools.json  # Hermes prompt & tool assets
 │
 ├── skills/                       # Builtin Skill Insurance (git-tracked canonical custom skills)
 │   ├── cpu-tools/                # Fast ONNX/BGE decision & reranker tool
 │   ├── deep-solve/               # GVS5H autonomous algorithm solver
+│   ├── reliable-file-read/       # Unicode/fullwidth path resolution micro-skill
 │   ├── update-skills/            # Fast-forward skill suite updater router
-│   └── wipe-agy-chat/            # Session & transcript purging tool
+│   ├── wipe-agy-chat/            # Session & transcript purging tool
+│   └── scoped/                   # Harness-scoped skills deployed per harness (pi/, deepseek/)
+│
+├── vendor/                       # Vendored runtime dependencies (von backend)
 │
 ├── localai/                      # LocalAI Core Integration
 │   ├── __init__.py
 │   ├── manager.py                # LocalAIManager: orchestrates engine startup, configs, and shims
 │   ├── model_configs.py          # Auto-generates LocalAI YAML configs from models.ini & models/exl3
-│   ├── native_server.py          # High-performance native LocalAI supervisor & OpenAI API router
+│   ├── native_server.py          # High-performance native LocalAI supervisor & OpenAI/Anthropic API router
 │   ├── loop_detector.py          # Real-time streaming & non-streaming model loop detection engine
-│   ├── models/                   # Auto-generated LocalAI YAML model definitions (33 configs)
+│   ├── models/                   # Auto-generated LocalAI YAML model definitions (gitignored, generated at runtime)
+│   ├── web/                      # LocalAI Cockpit WebUI (index.html + static assets)
 │   └── proto/                    # Compiled Protobuf & gRPC stubs from LocalAI backend.proto
 │       ├── backend.proto         # Upstream LocalAI gRPC specification
 │       ├── backend_pb2.py        # Generated Python Protobuf classes
@@ -77,19 +94,32 @@ C:\aiWorkspace\local_ai_launcher\
 │   ├── base_shim.py              # Base gRPC BackendServicer with standard lifecycle handling
 │   ├── blackwell_llama_shim.py   # Blackwell llama-server gRPC shim (injects 36 hybrid-KV env vars)
 │   ├── blackwell_llama_shim.cmd  # Standalone CLI launcher for Blackwell shim
+│   ├── bruno_llama_shim.py/.cmd  # Bruno fork llama-server shim (qwen38-blackwell-256k branch build)
+│   ├── huang_llama_shim.py/.cmd  # Huang adaptive-KV-stream llama-server shim (RaymondHuang210129 fork)
 │   ├── tabby_grpc_shim.py        # TabbyAPI EXL3 gRPC shim (enforces 256-multiple constraints)
 │   ├── tabby_grpc_shim.cmd       # Standalone CLI launcher for TabbyAPI shim
 │   ├── freetoken_grpc_shim.py    # FreeToken NVFP4 gRPC shim (Windows hotfixes & checkpoint conversion)
 │   ├── freetoken_grpc_shim.cmd   # Standalone CLI launcher for FreeToken shim
-│   └── strata_grpc_shim.py       # Strata 125B MoE gRPC shim (Port 9943, MTP speculative decoding)
+│   ├── strata_grpc_shim.py       # Strata 125B MoE gRPC shim (Port 9943, MTP speculative decoding)
+│   ├── loop_recovery.ts          # Pi harness extension: loop recovery config injection
+│   ├── cpu_tools.ts              # Pi harness extension: cpu_rerank / cpu_decide native tools
+│   └── auto_cycle.ts             # Pi harness extension: session auto-cycle
 │
 ├── backends/                     # Subsystem Backends
 │   ├── __init__.py
 │   ├── blackwell_builder.py      # MSVC + CMake + CUDA 13.x compiler for RTX 5080 sm_120 llama.cpp
+│   ├── bruno_builder.py          # Bruno fork builder (canonical 36-flag BRUNO_RUNTIME_ENV; BLACKWELL_RUNTIME_ENV alias)
+│   ├── huang_builder.py          # Huang adaptive-KV-stream fork builder (adaptive KV streaming, circular arena)
+│   ├── llamacpp_router.py        # Unified llama-server variant router (Bruno / Huang / official priority engine)
+│   ├── ascii_pruner.py           # ASCII BPE-vocabulary pruner (14.25 GB -> 12.25 GB) for Huang runtime
 │   ├── cpu_decision.py           # CPU-only Decision & Gating Subsystem (wired to Port 8083 ONNX Gater)
 │   ├── cpu_director.py           # CPU-only Media Production Director backend (Port 8081 / Gemma 4 VLM)
-│   ├── cpu_onnx_gater.py         # Standalone ONNX runtime discrete choice gater microservice (port 8083)
+│   ├── cpu_onnx_gater.py         # Standalone von System One gater microservice (port 8083)
+│   ├── cpu_decider.py            # Standalone Decider-4B v2.1 FastAPI engine (port 8084, worker on 8081)
 │   ├── cpu_reranker.py           # Standalone BGE-Reranker-v2-m3 microservice (port 8082)
+│   ├── litellm.py                # LiteLLM proxy supervisor (Port 4000, Anthropic Messages <-> OpenAI)
+│   ├── searxng.py                # SearXNG portable metasearch supervisor (Port 8088, WSL2/native/remote tiers)
+│   ├── localai.py                # Official LocalAI install/update supervisor
 │   ├── strata.py                 # Strata inference engine supervisor & native pack manager
 │   ├── tabbyapi.py               # TabbyAPI environment & configuration manager
 │   ├── freetoken.py              # FreeToken environment, PyTorch 2.11 + CUDA 13, & hotfixes
@@ -98,9 +128,10 @@ C:\aiWorkspace\local_ai_launcher\
 │   ├── omniroute.py              # OmniRoute token compression proxy checker & supervisor
 │   └── parakeet_npu.py           # Intel NPU Parakeet TDT V3 STT voice dictation server
 │
-├── harnesses/                    # 11 Coding Agent Harness Adapters
-│   ├── __init__.py
+├── harnesses/                    # 12 Coding Agent Harness Adapter Modules (30 registry keys)
+│   ├── __init__.py               # HARNESS_REGISTRY + ONLINE_ONLY_HARNESSES
 │   ├── antigravity.py            # Antigravity IDE / Desktop harness
+│   ├── claude.py                 # Claude Code CLI + Claude Desktop adapters (local / official / local_claude_native modes)
 │   ├── orca.py                   # Orca ADE harness (auto-configured to http://localhost:8080/v1)
 │   ├── pi.py                     # Pi coding agent harness
 │   ├── hermes.py                 # Hermes agent harness
@@ -113,28 +144,42 @@ C:\aiWorkspace\local_ai_launcher\
 │
 ├── bridges/                      # Cross-Harness Bridges
 │   ├── gvs5h_solver.py           # GVS5H 5-phase ledger-based multi-agent algorithmic solver
+│   ├── cpu_tools_cli.py          # CPU rerank/decide CLI bridge for shell harnesses (Hermes)
+│   ├── safe_run.py               # Windows Job Object process containment runner (KILL_ON_JOB_CLOSE)
+│   ├── dom_navigator.py          # DOM/Accessibility pruning bridge for Decider-4B (Mind2Web / MiniWoB++)
+│   ├── searxng_mcp.py            # stdio MCP bridge to SearXNG metasearch
+│   ├── claude_desktop_mcp.py     # stdio MCP bridge connecting Claude Desktop to the local gateway
 │   └── orca_openlumara/          # Orca-OpenLumara Trae wrapper and bridge configurator
 │
 ├── hermes/
 │   └── config.yaml               # Hermes agent Mnemosyne memory and compaction config
 │
-└── tests/                        # Comprehensive Pytest Suite (169 Tests)
-    ├── test_audit_fixes.py
+└── tests/                        # Comprehensive Pytest Suite (27 files, 471 tests collected)
+    ├── conftest.py
+    ├── test_ascii_pruner.py
     ├── test_blackwell_engine_routing.py
     ├── test_chat_completions_payloads.py
+    ├── test_claude_searxng_offline_policy.py
     ├── test_config.py
+    ├── test_context_preloader.py
     ├── test_cpu_auxiliary.py
     ├── test_environment.py
     ├── test_exit_cleanup.py
     ├── test_grpc_shims.py
     ├── test_gvs5h_solver.py
+    ├── test_hardware_profiles_and_overlays.py
+    ├── test_harness_characteristics.py
     ├── test_harnesses.py
-    ├── test_headless_config.py
     ├── test_localai_configs.py
     ├── test_localai_install_update.py
     ├── test_loop_detector.py
     ├── test_loop_recovery_config.py
+    ├── test_memory_clawback.py
     ├── test_model_settings_fidelity.py
+    ├── test_safe_run.py
+    ├── test_searxng_wsl.py
+    ├── test_skills_manager.py
+    ├── test_update_frequency.py
     ├── test_vram_coordinator.py
     └── test_web_gui_and_terminal_tabs.py
 ```
@@ -155,7 +200,7 @@ C:\aiWorkspace\local_ai_launcher\
 - On Windows, running the official CGo LocalAI binary can encounter WSL2 or Docker setup friction.
 - To provide maximum reliability and zero-friction execution, `local_ai_launcher` implements `localai/native_server.py`:
   - A native Windows, high-performance async FastAPI engine mimicking LocalAI's routing logic.
-  - Exposes standard OpenAI endpoints: `/v1/models`, `/v1/chat/completions`, `/v1/completions`, `/backend/shutdown`.
+  - Exposes standard OpenAI endpoints: `/v1/models`, `/v1/chat/completions`, `/v1/completions`, `/v1/responses`, `/v1/rerank` (+ `/rerank`), `/v1/decide`, `/v1/decider/slots`, `/v1/decider/dom`, `/v1/global/health`, `/backend/shutdown` — plus the native **Anthropic Messages API** (`/v1/messages`, `/messages`, `/v1/messages/count_tokens`) for Claude Code/Desktop direct routing (Strata is the default native member; a LiteLLM translation proxy on Port 4000 covers engines without native support).
   - Enforces `SINGLE_ACTIVE_BACKEND=true` across all external gRPC shims.
   - Also strictly supports standard LocalAI gRPC configuration so that if the user runs official LocalAI in Docker or WSL2, the shims and model configs in `localai/models/` plug in interchangeably.
 
@@ -179,14 +224,16 @@ C:\aiWorkspace\local_ai_launcher\
   - Maps GGUF models to `backend: blackwell-llama`.
   - Maps EXL3 directories to `backend: tabbyapi-exl3`.
   - Maps NVFP4 models to `backend: freetoken-nvfp4`.
-- On initialization, 33 model configurations were generated and validated.
+- `models.ini` currently carries **36 presets** (Blackwell/Huang GGUF variants incl. ascii-pruned and abliterated editions, EXL3, audio/vision models); generated YAML files land in the gitignored `localai/models/` directory at runtime.
 
 ### 3.6 Dedicated CPU Auxiliary Subsystem (0 MB Discrete GPU VRAM)
 To guarantee that fast-track decisions, passage reranking, and media production direction never contend with discrete GPU VRAM or disrupt large diffusion runs in ComfyUI, `local_ai_launcher` implements a dedicated CPU auxiliary subsystem:
-- **Port 8081 (CPU llama-server)**: Dedicated CPU-only llama-server (`-ngl 0`, `-t 4`), running `gemma-4-12B-it` / Media Production Director or standalone CPU text models without loading discrete GPU VRAM (keeping 100% of GPU VRAM free for video diffusion / ComfyUI).
+- **Port 8081 (Unified CPU llama-server)**: Dedicated CPU-only llama-server (`-ngl 0`), the unified CPU worker host: runs the Decider-4B C++ inference backend by default and hosts `gemma-4-12B-it` / Media Production Director when media directing is active (strictly isolated, non-overlapping workloads). Port 9935 is retired in favor of 8081. Keeps 100% of GPU VRAM free for video diffusion / ComfyUI.
 - **Port 8082 (CPU Reranker Microservice)**: Standalone FastAPI microservice running `BAAI/bge-reranker-v2-m3` via FastEmbed/OpenVINO CPU. Exposes standard OpenAI/Cohere/TEI cross-encoder endpoints (`/v1/rerank` and `/rerank`) for high-throughput passage scoring.
-- **Port 8083 (CPU ONNX Decision Gater Engine)**: Standalone FastAPI microservice running `open-jev-deberta-v3-large` via ONNX Runtime for sub-15ms discrete choice evaluation (`/v1/decide` and `/v1/chat/completions`). Evaluates tool permissions, triage, and lint checks in a single forward pass without autoregressive token generation.
+- **Port 8083 (CPU von System One Gater)**: Standalone FastAPI microservice running **`wfzyx/von`** (ModernBERT-based non-autoregressive encoder) via ONNX Runtime for sub-15ms discrete choice evaluation (`/v1/decide`, `/v1/systemone`, `/v1/tripwire`, `/v1/shortlist`, `/v1/tools/route`, `/v1/chat/completions`). Evaluates tool permissions, triage, and lint checks in a single forward pass without autoregressive token generation. It **replaced the deprecated** `open-jev-deberta-v3-large` and `CLM-8B` models.
+- **Port 8084 (CPU Decider-4B Engine)**: Standalone FastAPI engine running `Mapika/decider-4b-v2.1` — schema-first multi-slot parallel extraction (`/v1/decider/slots`), Mind2Web/MiniWoB++ DOM action evaluation (`/v1/decider/dom`), and MCTS policy priors (`/v1/decider/policy_prior`). Raw token inference is proxied to the unified CPU llama-server on 8081.
 - **Port 8085 (Hermes Signal CLI Daemon)**: Parameterized to `signal_daemon_port = 8085` to completely prevent port collisions with the CPU llama-server on port 8081.
+- **Port 8088 (SearXNG Portable Metasearch)**: Privacy web search for offline agents with three service tiers (WSL2 Docker default / native Waitress / remote), bridged to MCP clients via `bridges/searxng_mcp.py`.
 
 ### 3.7 Smart Agent Dispatcher (`dispatcher.py`)
 The smart agent dispatcher coordinates requests across the CPU fast-path and GPU deep reasoning tiers:
@@ -195,46 +242,32 @@ The smart agent dispatcher coordinates requests across the CPU fast-path and GPU
 - **Anchored Context Compaction**: Separates code diffs into immutable syntax anchors (`+`, `-`, `@@`, definitions) while compacting background noise via the CPU decision engine before escalating to GPU.
 - **Persistent Keep-Alive Connection Pooling**: Implements process-singleton `get_shared_async_client()` and `get_shared_sync_client()` with persistent connection pools to eliminate Windows socket exhaustion and `TIME_WAIT` churn.
 ### 3.8 Real-Time Loop Detection & Stacking Sampler Recovery
-- **Sliding-Window N-Gram & Autocorrelation Engine (`loop_detector.py`)**: Intercepts autoregressive repetition loops in real-time across SSE streams and standard completions. Fences and thinking tags are tracked from accumulated text to remain invariant to chunk boundaries and multi-fence deltas. N-grams older than `max_history_words` (1500) are pruned via sliding window to eliminate false positives on distant boilerplate.
+- **Sliding-Window N-Gram & Autocorrelation Engine (`loop_detector.py`)**: Intercepts autoregressive repetition loops in real-time across SSE streams and standard completions. Fences and thinking tags are tracked from accumulated text to remain invariant to chunk boundaries and multi-fence deltas. N-grams older than `max_history_words` (1500) are pruned via sliding window to eliminate false positives on distant boilerplate. Tuning is layered: code defaults are `ngram_size=8` / `ngram_threshold=3` / `cycle_similarity=0.82` (`config.py`), while the shipped `launcher.toml` tunes to **12 / 5 / 0.93** with `min_sentence_len=40` (thresholds of 3 or below false-positive on `'''`-style code comments); inside code blocks the effective threshold is automatically `ngram_threshold + 2`.
 - **Stacking Temperature Cooling (`native_server.py`)**: Rather than boosting temperature (which increases entropy), loop recovery cools temperature linearly per consecutive loop streak:
   $$T = \max(T_{\text{floor}}, T - \Delta T_{\text{reduce}} \times \text{streak})$$
   Clamped against `loop_recovery_temp_floor` (default: 0.15) with an effective floor guard: $\min(T_{\text{initial}}, T_{\text{floor}})$ ensuring greedy decoding ($T = 0.0$) is never warmed up.
 - **TTL Session Pruning**: Automatic 180s TTL cleanup and a 500-entry capacity cap prevent memory leaks across ephemeral subagent sessions.
 - **Clean Completion Reset**: Clean stream or JSON completion immediately resets the session's streak to 0, ensuring normal temperature resumes upon successful recovery.
 
+### 3.9 Claude Code / Claude Desktop & Native Anthropic Messages Routing
+- `harnesses/claude.py` registers the largest adapter family (30 `HARNESS_REGISTRY` keys): Claude Code CLI (`claude`, `claude-local`, `claude-official`, `claude-code*`, `claudecode`) and Claude Desktop (`claude-desktop*` with `mcp` / `gateway` / `disabled` modes).
+- **Routing modes** (`--claude-mode`): `local` (offline gateway on 8080 via OpenAI translation), `official` (Anthropic cloud), and `local_claude_native` — engines whose backend serves the Anthropic Messages protocol natively (`/v1/messages`), currently **Strata** (`local_claude_native_engines` config list, `harness_model.py` capability registry). No translation bridge is needed in native mode.
+- For non-native engines, the **LiteLLM proxy (Port 4000)** translates Anthropic Messages ↔ OpenAI; Claude Desktop can alternatively attach through the stdio MCP bridge (`bridges/claude_desktop_mcp.py`).
+- The offline profile seeds an "Offline Answer Contract" persona into the isolated CLAUDE.md to suppress model-side deflection; the contract is fingerprint-pinned by `tests/test_claude_searxng_offline_policy.py`. See [CLAUDE_HARNESS.md](CLAUDE_HARNESS.md).
+
 ---
 
 ## 4. Verification & Test Results
 
-The entire test suite was executed via `pytest` and passed with 100% success rate:
+The suite is executed via `pytest` (sequentially — port-cleanup fixtures bind identical TCP sockets; see `AGENTS.md`). Current size as of 2026-10-14:
 
 ```
 ============================= test session starts =============================
-platform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0
 rootdir: C:\aiWorkspace
-collected 169 items
-
-local_ai_launcher/tests/test_audit_fixes.py .....                        [  2%]
-local_ai_launcher/tests/test_blackwell_engine_routing.py ......          [  6%]
-local_ai_launcher/tests/test_chat_completions_payloads.py ...........    [ 13%]
-local_ai_launcher/tests/test_config.py ..........                        [ 18%]
-local_ai_launcher/tests/test_cpu_auxiliary.py .......................... [ 34%]
-.........                                                                [ 39%]
-local_ai_launcher/tests/test_environment.py ...                          [ 41%]
-local_ai_launcher/tests/test_exit_cleanup.py .....                       [ 44%]
-local_ai_launcher/tests/test_grpc_shims.py .........                     [ 49%]
-local_ai_launcher/tests/test_gvs5h_solver.py ................            [ 59%]
-local_ai_launcher/tests/test_harnesses.py .....................          [ 71%]
-local_ai_launcher/tests/test_localai_configs.py .....                    [ 74%]
-local_ai_launcher/tests/test_localai_install_update.py ......            [ 78%]
-local_ai_launcher/tests/test_loop_detector.py ............               [ 85%]
-local_ai_launcher/tests/test_loop_recovery_config.py .............       [ 92%]
-local_ai_launcher/tests/test_model_settings_fidelity.py ......           [ 96%]
-local_ai_launcher/tests/test_vram_coordinator.py ...                     [ 98%]
-local_ai_launcher/tests/test_web_gui_and_terminal_tabs.py ...            [100%]
-
-============================ 169 passed in 18.13s =============================
+collected 471 items / 27 test files
 ```
+
+Coverage spans: model & hardware-profile overlays, gRPC shims, loop detection + cooling recovery, CPU auxiliary services (8081–8085), von shortlisting guardrails, Decider-4B, SearXNG WSL tiers + Claude offline policy, Claude harness characteristics, GVS5H deep-solve, VRAM coordination, memory clawback, `safe_run` Job Object containment, context preloader, skills manager, update frequency, ASCII pruner, and Windows trampoline self-healing. (Run `pytest local_ai_launcher/tests` to reproduce the full pass transcript.)
 
 ---
 
@@ -245,9 +278,12 @@ local_ai_launcher/tests/test_web_gui_and_terminal_tabs.py ...            [100%]
 | **LocalAI API Router** | `8080` | Unified OpenAI-compatible REST API (`/v1/*`) |
 | **CPU llama-server** | `8081` | CPU-only Decision & Media Director server (`-ngl 0`, Lion Cove P-cores) |
 | **CPU Reranker Microservice** | `8082` | BAAI/bge-reranker-v2-m3 cross-encoder (`/v1/rerank` and `/rerank`) |
-| **CPU ONNX Decision Gater** | `8083` | Sub-15ms discrete choice evaluator (`open-jev-deberta-v3-large`, `/v1/decide`) |
+| **CPU von System One Gater** | `8083` | Sub-15ms discrete choice evaluator (`wfzyx/von`, `/v1/decide`, `/v1/shortlist`) |
+| **CPU Decider-4B Engine** | `8084` | Multi-slot extraction & DOM action evaluation (`Mapika/decider-4b-v2.1`; C++ worker on 8081; port 9935 retired) |
 | **Hermes Signal CLI Daemon** | `8085` | Signal CLI gateway daemon isolated from auxiliary ports |
-| **Intel NPU Speech-to-Text** | `8000` | Parakeet TDT V3 transcription endpoint (`/v1/audio/transcriptions`) / TabbyAPI direct |
+| **SearXNG Metasearch** | `8088` | Portable privacy web search (WSL2-Docker / native Waitress / remote tiers) |
+| **Intel NPU Speech-to-Text** | `8000` | Parakeet TDT V3 transcription endpoint (`/v1/audio/transcriptions`) |
+| **LiteLLM Proxy** | `4000` | Anthropic Messages ↔ OpenAI translation proxy (Claude routing for non-native engines) |
 | **OmniRoute Proxy** | `20128` | Token compression proxy for agent context compaction (routes to 8080) |
 | **Internal `llama-server`** | `9931` | Direct backend port managed by Blackwell shim |
 | **MCP Server** | `9932` | Tool proxy for Antigravity Desktop / IDE |
@@ -266,10 +302,10 @@ local_ai_launcher/tests/test_web_gui_and_terminal_tabs.py ...            [100%]
 
 ```powershell
 # Launch unified LocalAI launcher with Orca ADE
-C:\aiWorkspace\local_ai_launcher\launch.cmd --harness orca
+C:\aiWorkspace\local_ai_launcher\1_launch.cmd --harness orca
 
 # Launch with specific model and harnesses
-C:\aiWorkspace\local_ai_launcher\launch.cmd --model qwen-38_27b-blackwell-256k-think --harness orca pi hermes
+C:\aiWorkspace\local_ai_launcher\1_launch.cmd --model qwen-38_27b-blackwell-256k-think --harness orca pi hermes
 
 # Check live VRAM status
 C:\aiWorkspace\local_ai_launcher\vram_coordinator.cmd --status
@@ -287,7 +323,7 @@ C:\aiWorkspace\local_ai_launcher\vram_coordinator.cmd --evict
 In `ai_launcher`, agent consoles dock seamlessly into Windows Terminal because the launcher itself runs inside a named window (`AiLauncher_860a1b27`). In `local_ai_launcher`, this capability has been fully unified:
 
 1. **Self-Relaunch Trampoline**:
-   - Implemented in `local_ai_launcher\launch.cmd`, `C:\aiWorkspace\1_run_local_agent.cmd`, and `local_ai_launcher\__main__.py` (`ensure_windows_terminal()`).
+   - Implemented in `local_ai_launcher\1_launch.cmd`, `C:\aiWorkspace\1_run_local_agent.cmd`, and `local_ai_launcher\__main__.py` (`ensure_windows_terminal()`).
    - If executed in an interactive Windows Console outside Windows Terminal, it automatically relaunches itself into `wt.exe -w "AiLauncher_860a1b27" nt --title "Local AI Cockpit"`.
 2. **Elimination of Async Registration Race**:
    - Per `wt_tab_fixes.md`, cold-start window registration delay in `process.py` was updated from 0.3s to 2.0s. This prevents the second tab from creating a duplicate window while the named window registers.
@@ -299,7 +335,7 @@ LocalAI's official web UI assets from `https://github.com/mudler/LocalAI` (`core
 
 1. **Unified Chat Interface**:
    - ChatGPT-style interactive chat with system prompt configuration and live SSE streaming completions.
-   - Dropdown model selector spanning all 33 models (Blackwell GGUF, TabbyAPI EXL3, FreeToken NVFP4).
+   - Dropdown model selector spanning all model presets (Blackwell/Huang GGUF, TabbyAPI EXL3, FreeToken NVFP4, Strata MoE).
    - Code formatting with syntax highlighting (Highlight.js) and one-click copy buttons.
 2. **Models Catalog View**:
    - Real-time searchable filter across all installed models, displaying backend type and target paths.
@@ -324,14 +360,14 @@ Prior to this subsystem, package managers like `npx skills` flattened all subski
 1. **Vendor Store (`.agents/vendor/`)**:
    - Clones entire upstream Git repositories shallowly (`--depth 1`).
    - Keeps internal relative links, helper binaries (`bin/`), and sub-workflows intact.
-   - Configured suites: `gstack`, `hyperframes`, `remotion`, `superpowers`, `orca`, `humanizer`, `impeccable`, `skill-inspector`, `watch`, `find-skills`.
+   - Configured suites: `gstack`, `hyperframes`, `remotion`, `superpowers`, `orca`, `humanizer`, `impeccable`, `skill-inspector`, `watch`, `find-skills`, `rea`.
 
 2. **Curated Gateway (`.agents/skills/`)**:
    - Uses NTFS directory junctions (`mklink /J`) to project only top-level routers (e.g. `gstack`, `hyperframes`, `remotion-best-practices`, `using-superpowers`) and selected high-frequency process skills (`brainstorming`, `systematic-debugging`, `test-driven-development`, `writing-plans`) to harnesses.
    - Reduces system prompt token overhead from **~11.4k tokens down to ~1.2k tokens (a 90% reduction)**.
 
 3. **Builtin Skill Insurance (`local_ai_launcher/skills/`)**:
-   - Canonical home for workspace-native custom skills: `cpu-tools`, `deep-solve`, `wipe-agy-chat`, and `update-skills`.
+   - Canonical home for workspace-native custom skills: `cpu-tools`, `deep-solve`, `wipe-agy-chat`, `update-skills`, and `reliable-file-read`, plus harness-scoped skills under `skills/scoped/` (`pi/`, `deepseek/`) deployed by `SkillManager.ensure_scoped_harness_skills()`.
    - Tracked in Git inside `local_ai_launcher`. Even if `.agents/skills` is completely deleted, running `local_ai_launcher` or `python -m local_ai_launcher --sync-skills` automatically provisions them to `.agents/skills`, `.pi/skills`, and `.hermes/skills`.
 
 4. **Maintenance Automation (`.agents/update-skills.ps1`)**:
@@ -354,7 +390,8 @@ To prevent reliance on ad-hoc shell commands and avoid hardcoded external URLs, 
  │   ├── cpu-tools/         (CPU ONNX gater & cross-encoder passage reranker)       │
  │   ├── deep-solve/        (GVS5H autonomous algorithm solver & multi-agent loop)   │
  │   ├── update-skills/     (Agent router for fast-forwarding upstream suites)      │
- │   └── wipe-agy-chat/     (Transcript, session, and cache purger)                 │
+ │   ├── wipe-agy-chat/     (Transcript, session, and cache purger)                 │
+ │   └── reliable-file-read/(Unicode path resolution micro-skill)                   │
  └────────────────────────┬──────────────────────────────────────────────────────────┘
                           │ Auto-copied on launch / sync (zero git clone needed)
                           ▼
@@ -374,7 +411,8 @@ To prevent reliance on ad-hoc shell commands and avoid hardcoded external URLs, 
  │   ├── [skills.sources.impeccable]    -> https://github.com/pbakaus/impeccable.git │
  │   ├── [skills.sources.skill-inspector]-> https://github.com/NVIDIA/SkillSpector  │
  │   ├── [skills.sources.watch]         -> https://github.com/bradautomates/claude-..│
- │   └── [skills.sources.find-skills]   -> https://github.com/vercel-labs/skills.git │
+ │   ├── [skills.sources.find-skills]   -> https://github.com/vercel-labs/skills.git │
+ │   └── [skills.sources.rea]           -> REA reverse-engineering MCP suite          │
  └────────────────────────┬──────────────────────────────────────────────────────────┘
                           │ Cloned shallowly (--depth 1)
                           ▼

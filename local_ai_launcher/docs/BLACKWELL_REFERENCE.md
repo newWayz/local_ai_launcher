@@ -2,7 +2,7 @@
 **Target System**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7, WDDM 3.x, Optimus)  
 **Target Model**: `Qwen3.8-27B-UD-IQ4_XS.gguf` (14.25 GB, hybrid GDN + 16-layer attention)  
 **Source Implementation**: `BrunoPPassini/llama.cpp` (branch: `qwen38-blackwell-256k`, commit: `1a63cbf`)  
-**Date**: September 2026
+**Date**: September 2026 (engine-landscape sections re-verified against code 2026-10-14)
 
 ---
 
@@ -201,9 +201,9 @@ BLACKWELL_RUNTIME_ENV: Dict[str, str] = {
 *Atomic Test Probe*: `C:\aiWorkspace\ai_launcher\test_blackwell_phase1.ps1`
 
 ### For `local_ai_launcher` (Production Deployment)
-Promotion status: **COMPLETED & ACTIVE**.
-1. `BLACKWELL_RUNTIME_ENV` in `C:\aiWorkspace\local_ai_launcher\backends\blackwell_builder.py` includes `"LLAMA_ARG_JINJA": "1"` alongside the canonical 36 flags.
-2. `C:\aiWorkspace\local_ai_launcher\config.py` has `llamacpp_fork = "blackwell_qwen38"` and `llamacpp_blackwell_update_behavior = "never_update"`.
+Promotion status: **COMPLETED & ACTIVE** (re-wired since; code-verified 2026-10-14).
+1. The canonical 36-flag runtime dictionary (including `"LLAMA_ARG_JINJA": "1"`) is defined as `BRUNO_RUNTIME_ENV` in `C:\aiWorkspace\local_ai_launcher\backends\bruno_builder.py`; `BLACKWELL_RUNTIME_ENV` is an alias to it (same file) re-exported through `blackwell_builder.py`.
+2. Fork selection is now layered: `config.py` keeps `llamacpp_blackwell_update_behavior = "never_update"`, while the active llama variant is decided per-request by `backends/llamacpp_router.py` (`bruno` / `huang` / `official`). `llamacpp_fork` defaults to `"official"` and the `blackwell_engine` knob selects `"huang"` (default) or `"bruno"` for Blackwell-class models; the older `llamacpp_fork = "blackwell_qwen38"` value no longer exists.
 3. `C:\aiWorkspace\local_ai_launcher\models.ini` has `[qwen-38_27b-blackwell-256k-think]` configured with:
    ```ini
    batch-size = 1024
@@ -281,39 +281,45 @@ If requirements shift or a different model format is needed, the following alter
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│                             Alternative Inference Engines Overview                          │
+│        Alternative Inference Engines Overview (router-managed, code-verified 2026-10-14)    │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
   │
-  ├─► [1] Blackwell Llama-Server (Current Active)
-  │     • Engine: BrunoPassini fork sm_120a custom build (`llama-cpp-blackwell`)
-  │     • Best For: Hybrid GDN architectures (Qwen 3.8 / Qwen 3.5), extreme context (up to 256K)
-  │     • Strengths: 64K VRAM hot / 192K DDR5 cold ring, native sm_120a MMA tensor cores.
+  ├─► [1] Blackwell-class llama.cpp variants — selected per request by backends/llamacpp_router.py
+  │     ├─ Bruno fork  (blackwell_engine = "bruno")
+  │     │    • Engine: BrunoPPassini/llama.cpp branch qwen38-blackwell-256k, sm_120a custom build
+  │     │    • Best For: Hybrid GDN architectures (Qwen 3.8 / Qwen 3.5), extreme context (up to 256K)
+  │     │    • Strengths: 64K VRAM hot / 192K DDR5 cold ring, native sm_120a MMA tensor cores,
+  │     │      canonical 36-flag BRUNO_RUNTIME_ENV.
+  │     ├─ Huang fork  (blackwell_engine = "huang", DEFAULT)
+  │     │    • Engine: RaymondHuang210129/llama.cpp-adaptive-kv-streaming branch feature/adaptive-kv-stream-v2
+  │     │    • Best For: 63–96.8% VRAM utilization with MTP only, zero CPU offload, circular KV arena
+  │     │    • Companions: ASCII-vocabulary pruner (backends/ascii_pruner.py, 14.25 GB -> ~12.25 GB)
+  │     │      enabling full GPU offload (ngl = -1) within 16 GB; presets
+  │     │      qwen-38_27b-huang-{gsq,ascii,abli-ascii}-{think,nothink}.
+  │     └─ Official upstream (ggml-org/llama.cpp, router fallback)
+  │          • Best For: Standard Transformer GGUFs (Llama 3, Mistral, Command-R, DeepSeek non-GDN)
+  │          • Strengths: Rock-solid stability, standard CUDA graph execution, upstream bugfixes.
+  │          • Limitations: Lacks the custom host ring / sm_120a MMA kernels and adaptive KV streaming.
   │
-  ├─► [2] Standard Official Llama-Server (`ggml-org/llama.cpp`, b10937+)
-  │     • Config Switch: `llamacpp_fork = "official"` in config.py
-  │     • Best For: Standard Transformer GGUFs (Llama 3, Mistral, Command-R, DeepSeek non-GDN)
-  │     • Strengths: Rock-solid stability, standard CUDA graph execution, upstream bugfixes.
-  │     • Limitations: Lacks the custom 192K DDR5 host ring and sm_120a MMA kernels for GDN.
-  │
-  ├─► [3] Atomic TurboQuant (`AtomicBot-ai/atomic-llama-cpp-turboquant`)
-  │     • Config Switch: `llamacpp_fork = "atomic"` in config.py
-  │     • Best For: Ultra-low-bit quantized models (TQ1_0, TQ2_0, IQ1_S)
-  │     • Strengths: Extreme VRAM savings on massive dense models.
-  │     • Limitations: Specialized quant support; not tailored for hybrid GDN ring buffers.
-  │
-  ├─► [4] TabbyAPI / ExLlamaV3 (`exllamav3`)
+  ├─► [2] TabbyAPI / ExLlamaV3 (`exllamav3`)
   │     • Model Path: `models/exl3/*` (e.g. `Muse-Glimmer-30B-exl3-3.0bpw`, `Qwen3.8-27B-exl3`)
   │     • Config Switch: `default_model = "Muse-Glimmer-30B-exl3-3.0bpw"` in config.py
   │     • Strengths: Industry-leading token-generation throughput (100+ tg/s), dedicated PyTorch
   │       allocator, zero WDDM barrier synchronization issues, native flash-attn.
   │     • Limitations: Requires EXL3 format models; does not support standard GGUF files.
   │
-  └─► [5] FreeToken NVFP4 (`freetoken` gRPC Shim)
-        • Model Path: `models/freetoken/*` (e.g. `nvidia_Qwen3.6-35B-A3B-NVFP4`)
-        • Config Switch: `default_model = "freetoken\\nvidia_Qwen3.6-35B-A3B-NVFP4"`
-        • Strengths: Native NVFP4 hardware acceleration on Blackwell Tensor Cores (sm_120).
-        • Limitations: Fixed FP4 precision; higher VRAM baseline for model parameters.
+  ├─► [3] FreeToken NVFP4 (`freetoken` gRPC Shim)
+  │     • Model Path: `models/freetoken/*` (e.g. `nvidia_Qwen3.6-35B-A3B-NVFP4`)
+  │     • Config Switch: `default_model = 'freetoken\nvidia_Qwen3.6-35B-A3B-NVFP4'`
+  │     • Strengths: Native NVFP4 hardware acceleration on Blackwell Tensor Cores (sm_120).
+  │     • Limitations: Fixed FP4 precision; higher VRAM baseline for model parameters.
+  │
+  └─► [4] Strata 125B MoE (`strata` gRPC Shim, port 9943)
+        • Model Path: IQ3_S packs built by scripts/setup_strata_iq3s.py
+        • Strengths: 125B MoE on 16 GB VRAM via expert streaming; native Anthropic Messages API.
+        • Details: docs/STRATA.md.
 ```
+*(The former "Atomic TurboQuant" fork option (`llamacpp_fork = "atomic"`) is no longer present in the codebase.)*
 
 ---
 
@@ -326,7 +332,7 @@ To ensure that future launcher updates, repository re-clones, or automated maint
 2. **Binary-Adjacent Reference** (Inside the update-locked Blackwell binary directory):
    `C:\aiWorkspace\llama-cpp-blackwell\README_BLACKWELL_OPTIMIZATION.md`
 3. **Launcher Architecture Reference** (Directly inside the local production launcher package):
-   `C:\aiWorkspace\local_ai_launcher\BLACKWELL_REFERENCE.md`
+   `C:\aiWorkspace\local_ai_launcher\docs\BLACKWELL_REFERENCE.md`
 
 Future AI assistants encountering Blackwell, sm_120a, or long-context prefix-caching behavior should consult this guide before altering build flags, environment variables, or update behavior.
 

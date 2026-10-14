@@ -50,6 +50,8 @@ resident_budget_gib = 52
 ```
 *(Note: `mmap-experts` and `resident-budget-gib` are intentionally not placed in `models.ini` to ensure compatibility with standard `llama-server` engine variants that do not recognize those flags).*
 
+Engine-level defaults additionally load from `strata_settings.json` / `strata_models.json` (see `backends/strata.py:load_strata_settings` and the `.example` templates; per-model pack presets ship as `strata-*.json`). Initial shard download + pack build: `python local_ai_launcher/scripts/setup_strata_iq3s.py`.
+
 ### Mode A: `strata_resident_budget_gib = 52` (Hybrid Resident Budget + Lookahead Prefetch - Recommended)
 - **Mechanism**: Strata copies up to 52 GiB of the hottest experts (ranked by `expert-profile.bin`) directly into pinned host RAM, streams cold experts via `MapViewOfFile` (mmap), and activates background routing lookahead prefetch (`PrefetchVirtualMemory`).
 - **Memory Footprint**: Clamped cleanly to available RAM minus 4 GiB headroom; requires no application force-termination.
@@ -69,12 +71,12 @@ resident_budget_gib = 52
 
 ## 5. Memory Clawback Tiers (`memory_clawback.py`)
 
-Configured via `strata_brutal_ram_clawback = "off" | "light" | "max"`:
+Configured via `strata_brutal_ram_clawback = "off" | "light" | "max"` (accepted spellings also include `brutal`/`full`/`heavy`/`true`/`1` → `max`, and `false`/`0` → `off`; see `memory_clawback.py`):
 
 1. **`"off"` Mode**:
    - Skips all memory reclamation steps.
 2. **`"light"` Mode (Default)**:
-   - **Suppression of Auxiliary Microservices**: Evicts BGE Reranker (Port 8082), ONNX Decision Gater (Port 8083), Parakeet Voice (Port 8084), and CPU Director (Port 8081). Reclaims **~4.0 – 5.0 GB** of RAM.
+   - **Suppression of Auxiliary Microservices**: Evicts BGE Reranker (Port 8082), ONNX Decision Gater (Port 8083), Decider-4B Engine (Port 8084), and CPU Director (Port 8081). Reclaims **~4.0 – 5.0 GB** of RAM. (Parakeet voice on Port 8000 is not part of the clawback set.)
    - **Working Set Trimming (`K32EmptyWorkingSet`)**: Flushes unreferenced private working set pages to the standby list. Reclaims **~1.0 – 2.5 GB** in <500 ms.
    - **Zero Process Termination**: User programs (browsers, Discord, Steam, IDEs) remain open.
 3. **`"max"` Mode (Brutal Clawback)**:

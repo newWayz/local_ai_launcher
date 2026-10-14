@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-10-14
+
+### Added
+- **Claude Code / Claude Desktop Harness Family** (`harnesses/claude.py`, 30 `HARNESS_REGISTRY` keys):
+  - Routing modes via `--claude-mode {local, official, local_claude_native}`; `local_claude_native` lets native Anthropic Messages engines (default member: **Strata**) serve Claude Code/Desktop directly over `/v1/messages` without a translation bridge.
+  - Claude Desktop modes via `--claude-desktop-mode {mcp, gateway, disabled, off}`; stdio MCP bridge `bridges/claude_desktop_mcp.py`.
+  - Native Anthropic endpoints on the gateway: `/v1/messages`, `/messages`, `/v1/messages/count_tokens`.
+  - Offline Answer Contract persona seeded into the isolated local profile (fingerprint-pinned by `tests/test_claude_searxng_offline_policy.py`).
+- **von System One Gater (Port 8083)**: `wfzyx/von` ModernBERT non-autoregressive encoder replacing the deprecated `open-jev-deberta-v3-large` and `CLM-8B`; endpoints `/v1/decide`, `/v1/systemone`, `/v1/tripwire`, `/v1/shortlist`, `/v1/tools/route`.
+- **Decider-4B v2.1 Subsystem (Port 8084)**: `Mapika/decider-4b-v2.1` FastAPI engine (`/v1/decider/slots`, `/v1/decider/dom`, `/v1/decider/policy_prior`) with raw C++ inference on the unified CPU worker (8081); **port 9935 retired**. DOM bridge `bridges/dom_navigator.py` (Mind2Web / MiniWoB++).
+- **SearXNG Portable Metasearch (Port 8088)**: three service tiers (WSL2 Docker default / native Waitress / remote), MCP bridge `bridges/searxng_mcp.py`, offline web-search policy for agents.
+- **LiteLLM Proxy (Port 4000)**: Anthropic Messages ↔ OpenAI translation for engines without native `/v1/messages`.
+- **Huang Adaptive-KV-Stream llama fork**: builder + gRPC shim (`RaymondHuang210129/llama.cpp-adaptive-kv-streaming`), six `qwen-38_27b-huang-*` presets, ASCII-vocabulary pruner backend (`backends/ascii_pruner.py`, 14.25 GB → 12.25 GB), and the unified **llama-server variant router** (`backends/llamacpp_router.py`: Bruno / Huang / official priority engine; `blackwell_engine = "huang"` default).
+- **Update Frequency Manager** (`update_frequency.py`): `--update-frequency-hrs`, `--force-update`, state in `config/update_state.json`.
+- **`safe_run.py`**: Windows Job Object process containment runner (`KILL_ON_JOB_CLOSE`) reaping detached/grandchild processes.
+- **Memory Clawback Tiers** (`memory_clawback.py`): `off` / `light` (evict aux microservices 8081–8084 + working-set trim) / `max` (terminate non-essential user apps), wired to Strata `strata_brutal_ram_clawback`.
+- **Loop-Detector Retuning**: code defaults 8-gram / 3-repeat / 0.82; shipped `launcher.toml` tunes to 12 / 5 / 0.93 with code-block +2 threshold guard (eliminates `'''`-comment false positives).
+- **Harness/Engine Characteristics Registry** (`harness_model.py`): offline capability, meta-harness designation, preload/inner-CLI resolution ordering.
+- **Skills**: `reliable-file-read` builtin skill, harness-scoped skill deployment (`skills/scoped/{pi,deepseek}`), `[skills.sources.rea]` registry entry.
+
+### Changed
+- Gateway endpoint surface documented: `/v1/responses`, `/v1/rerank`, `/v1/decide`, `/v1/decider/*` (there is **no** `/v1/embeddings` endpoint).
+- Test suite grew from 169 → **471 collected tests** across 27 files.
+
+> Note: `pyproject.toml` and the GitHub Actions CI live at the **workspace root** (`C:/aiWorkspace`), which is the git repository root; `local_ai_launcher/` is a whitelisted subdirectory.
+
 ## [1.1.0] - 2026-10-03
 
 ### Added

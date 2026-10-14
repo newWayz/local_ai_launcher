@@ -49,8 +49,13 @@ You can run it directly from your terminal in `C:\aiWorkspace` without even open
 | **`--test-cmd`** | Verification command (`pytest`, `python -m unittest`, inline assertions). If omitted, validates syntax. | `None` |
 | **`--max-iters`** | Maximum manager-worker loop cycles. | `6` |
 | **`--max-seconds`**| Watchdog timeout (finishes cleanly before this limit). | `180` |
-| **`--model`** | Target model on LocalAI. | `qwen-38_27b-blackwell-256k-think` |
-| **`--endpoint`** | LocalAI endpoint. | `http://localhost:8080/v1/chat/completions` |
+| **`--test-timeout`** | Max seconds per test-command run. | `10.0` |
+| **`--model`** | Target model on LocalAI (env override: `GVS5H_MODEL`). | `qwen-38_27b-blackwell-256k-think` |
+| **`--endpoint`** | LocalAI endpoint (env override: `GVS5H_ENDPOINT`). | `http://localhost:8080/v1/chat/completions` |
+| **`--max-log-runs`** | Max recent log run folders retained under `C:\aiWorkspace\logs\gvs5h`. | `100` |
+| **`--prune-logs`** | Prune older log run folders immediately, then exit. | off |
+| **`--quiet`** | Suppress progress logs. | off |
+| **`--ensure-skills`** | Provision the `deep-solve` SKILL.md into Pi, Hermes, and the workspace, then exit. | off |
 
 #### Quick Inline Test Example:
 ```powershell

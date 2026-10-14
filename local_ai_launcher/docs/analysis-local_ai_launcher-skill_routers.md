@@ -1,6 +1,7 @@
 # Skill Router Consolidation Analysis
 
-> **Scope:** `C:\aiWorkspace\.agents\skills\` — 26 skills shared across local AI harnesses (Antigravity, Pi/Hermes, Claude Code, Codex, Orca, Muse).
+> **Status (2026-10-14):** Proposal — **not yet implemented**. `.agents/skills/` still contains the flat top-level layout (no `admin/`, `debug/`, `plan-and-build/`, `code-quality/`, `video-media/`, `orca/` router directories exist; the inventory has since drifted to 28 entries with `rea` and `reverse-engineer-anything` added). The port map and von/Decider-4B service descriptions below match the current codebase and remain accurate.
+> **Scope:** `C:\aiWorkspace\.agents\skills\` — 26 skills shared across local AI harnesses (Antigravity, Pi/Hermes, Claude Code, Codex, Orca, Muse). *(Point-in-time snapshot; re-count before acting.)*
 > **Purpose:** Reduce the number of skills loaded into context at session start. Fewer top-level skills means fewer description tokens in every harness prompt.
 
 ---
