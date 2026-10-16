@@ -89,6 +89,23 @@ def is_strata_active(model_name: Optional[str] = None) -> bool:
     return is_local_claude_native_active(model_name=model_name)
 
 
+def is_claude_offline_mode_active(
+    model_name: Optional[str] = None,
+    cfg: Optional[Any] = None
+) -> bool:
+    """Determines whether the special offline only Claude Code CLI mode conditions are met.
+
+    Conditions:
+    1. A local Claude native engine (such as Strata, supporting native Anthropic messages) is active.
+    2. claude_mode is not explicitly configured as 'official'.
+    """
+    effective_cfg = cfg or config
+    claude_mode = getattr(effective_cfg, "claude_mode", "local")
+    if str(claude_mode).strip().lower() == "official":
+        return False
+    return is_local_claude_native_active(model_name=model_name)
+
+
 def resolve_claude_context_and_compact(
     model_name: Optional[str] = None,
     is_desktop: bool = False,
@@ -1083,6 +1100,95 @@ class ClaudeOfficialAdapter(ClaudeAdapter):
     def __init__(self, root_dir, processes):
         super().__init__(root_dir, processes, mode_override="official")
         self.name = "claude-official"
+
+
+def ensure_claude_local_profile(
+    llm_base_url: Optional[str] = None,
+    active_model: Optional[str] = None,
+) -> Path:
+    """Pre-seeds the isolated local Claude profile (.claude/local) and local runner scripts.
+
+    Guarantees that .claude.json, settings.json, CLAUDE.md, and local runner scripts
+    (claude-local.cmd / claude-local.sh / claude-local.ps1) are fully initialized on disk.
+    """
+    model_name = resolve_model_name(active_model)
+    target_base_url = getattr(config, "claude_base_url", None) or llm_base_url or "http://127.0.0.1:8080"
+    anthropic_base = target_base_url
+    if anthropic_base.endswith("/v1"):
+        anthropic_base = anthropic_base[:-3].rstrip("/")
+    else:
+        anthropic_base = anthropic_base.rstrip("/")
+
+    claude_model = getattr(config, "claude_model", "claude-sonnet-4-5") or "claude-sonnet-4-5"
+    dummy_key = getattr(config, "claude_api_key", "dummy-token") or "dummy-token"
+
+    max_context, auto_compact = resolve_claude_context_and_compact(model_name, is_desktop=False)
+    eff_perm_mode = resolve_claude_permission_mode(is_desktop=False)
+    eff_thinking_mode = resolve_claude_thinking_mode(is_desktop=False)
+
+    adapter = ClaudeAdapter(AI_WORKSPACE_DIR, [])
+    return adapter._setup_isolated_local_profile(
+        anthropic_base=anthropic_base,
+        claude_model=claude_model,
+        dummy_key=dummy_key,
+        max_context_tokens=max_context,
+        auto_compact_window=auto_compact,
+        permission_mode=eff_perm_mode,
+        thinking_mode=eff_thinking_mode,
+    )
+
+
+def get_claude_local_env(
+    llm_base_url: Optional[str] = None,
+    active_model: Optional[str] = None,
+) -> Dict[str, str]:
+    """Returns the complete environment variable dictionary for special offline Claude Code CLI mode."""
+    target_base_url = getattr(config, "claude_base_url", None) or llm_base_url or "http://127.0.0.1:8080"
+    anthropic_base = target_base_url
+    if anthropic_base.endswith("/v1"):
+        anthropic_base = anthropic_base[:-3].rstrip("/")
+    else:
+        anthropic_base = anthropic_base.rstrip("/")
+
+    claude_model = getattr(config, "claude_model", "claude-sonnet-4-5") or "claude-sonnet-4-5"
+    dummy_key = getattr(config, "claude_api_key", "dummy-token") or "dummy-token"
+    claude_dir = getattr(config, "claude_dir", AI_WORKSPACE_DIR / ".claude")
+    local_profile_dir = claude_dir / "local"
+
+    model_name = resolve_model_name(active_model)
+    max_context, auto_compact = resolve_claude_context_and_compact(model_name, is_desktop=False)
+    eff_thinking_mode = resolve_claude_thinking_mode(is_desktop=False)
+
+    env_vars = {
+        "CLAUDE_CONFIG_DIR": str(local_profile_dir),
+        "ANTHROPIC_BASE_URL": anthropic_base,
+        "ANTHROPIC_API_KEY": dummy_key,
+        "ANTHROPIC_MODEL": claude_model,
+        "CLAUDE_MODEL": claude_model,
+        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+        "DISABLE_TELEMETRY": "1",
+        "DISABLE_NONESSENTIAL_TRAFFIC": "1",
+        "DO_NOT_TRACK": "1",
+        "DISABLE_ERROR_REPORTING": "1",
+        "DISABLE_GROWTHBOOK": "1",
+        "DISABLE_FEEDBACK_COMMAND": "1",
+        "DISABLE_BUG_COMMAND": "1",
+        "DISABLE_FEEDBACK_SURVEY": "1",
+        "DISABLE_VITALS_EMITTER": "1",
+        "DISABLE_AUTOUPDATER": "1",
+        "DISABLE_UPDATES": "1",
+        "CLAUDE_CODE_AUTOUPDATER_DISABLED_BY_HOST": "1",
+        "CLAUDE_CODE_DISABLE_REFUSAL_RETRY": "1",
+        "CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK": "1",
+        "CLAUDE_CODE_REFUSAL_FALLBACK_CATCH_ALL": "0",
+    }
+    if eff_thinking_mode == "disabled":
+        env_vars["MAX_THINKING_TOKENS"] = "0"
+    if max_context:
+        env_vars["CLAUDE_CODE_MAX_CONTEXT_TOKENS"] = str(max_context)
+    if auto_compact:
+        env_vars["CLAUDE_CODE_AUTO_COMPACT_WINDOW"] = str(auto_compact)
+    return env_vars
 
 
 def _get_mcp_python() -> str:

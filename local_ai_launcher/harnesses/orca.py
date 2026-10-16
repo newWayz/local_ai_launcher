@@ -144,7 +144,11 @@ def setup_orca_config(orca_home: Path, llm_base_url: str, active_model: Optional
                 agent_dict[k] = v
 
         # Claude Code CLI: Local vs Official isolation in Orca ADE
-        from local_ai_launcher.harnesses.claude import is_strata_active
+        from local_ai_launcher.harnesses.claude import (
+            is_claude_offline_mode_active,
+            ensure_claude_local_profile,
+            get_claude_local_env,
+        )
 
         default_env["claude-official"] = {
             "CLAUDE_CONFIG_DIR": "",
@@ -152,31 +156,19 @@ def setup_orca_config(orca_home: Path, llm_base_url: str, active_model: Optional
 
         cmd_overrides = data["settings"].setdefault("agentCmdOverrides", {})
 
-        if is_strata_active(active_model):
-            claude_local_dir = AI_WORKSPACE_DIR / ".claude" / "local"
-            claude_base = llm_base_url.rstrip("/v1").rstrip("/") if llm_base_url else "http://127.0.0.1:8080"
-            claude_model = getattr(config, "claude_model", "claude-sonnet-4-5") or "claude-sonnet-4-5"
-            dummy_key = getattr(config, "claude_api_key", "dummy-token") or "dummy-token"
-
-            claude_local_env = {
-                "CLAUDE_CONFIG_DIR": str(claude_local_dir),
-                "ANTHROPIC_BASE_URL": claude_base,
-                "ANTHROPIC_API_KEY": dummy_key,
-                "ANTHROPIC_MODEL": claude_model,
-                "CLAUDE_MODEL": claude_model,
-            }
-            default_env["claude-local"] = claude_local_env
+        if is_claude_offline_mode_active(active_model):
+            claude_local_dir = ensure_claude_local_profile(llm_base_url, active_model)
             claude_runner = str(claude_local_dir / ("claude-local.cmd" if os.name == 'nt' else "claude-local.sh"))
-            cmd_overrides["claude-local"] = claude_runner
+            claude_local_env = get_claude_local_env(llm_base_url, active_model)
 
-            active_claude_mode = getattr(config, "claude_mode", "local").strip().lower()
-            if active_claude_mode == "local":
-                default_env["claude"] = claude_local_env.copy()
-            else:
-                default_env["claude"] = {"CLAUDE_CONFIG_DIR": ""}
+            default_env["claude-local"] = claude_local_env.copy()
+            default_env["claude"] = claude_local_env.copy()
+            cmd_overrides["claude-local"] = claude_runner
+            cmd_overrides["claude"] = claude_runner
         else:
             default_env.pop("claude-local", None)
             cmd_overrides.pop("claude-local", None)
+            cmd_overrides.pop("claude", None)
             default_env["claude"] = {"CLAUDE_CONFIG_DIR": ""}
 
         from local_ai_launcher.harness_model import resolve_meta_harness_inner_cli_harness

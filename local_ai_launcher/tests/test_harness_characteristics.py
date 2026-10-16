@@ -389,3 +389,156 @@ def test_is_local_claude_native_active_helper():
     assert is_strata_active("cyber-tiel-coder-35b") is False
 
 
+def test_meta_harnesses_expose_offline_claude_when_strata_active(tmp_path, monkeypatch):
+    """Verify that when Strata engine is active and claude_mode is local,
+    both Orca ADE and T3 Code expose offline Claude Code CLI pointing to the local endpoint,
+    whether launched standalone or alongside other harnesses.
+    """
+    from local_ai_launcher.harnesses.orca import setup_orca_config
+    from local_ai_launcher.harnesses.t3 import setup_t3_config
+
+    strata_model = "qwen-38-flash-strata-iq3s"
+    endpoint = "http://127.0.0.1:8080/v1"
+
+    # 1. Standalone Orca ADE
+    orca_home = tmp_path / ".orca_standalone"
+    appdata_orca = tmp_path / "AppData_orca"
+    monkeypatch.setenv("APPDATA", str(appdata_orca))
+    monkeypatch.setattr(config, "choose_harness", ["orca"])
+    monkeypatch.setattr(config, "default_model", strata_model)
+    monkeypatch.setattr(config, "claude_mode", "local")
+    monkeypatch.setattr(config, "orca_data_dir", tmp_path / "orca_data_standalone")
+
+    setup_orca_config(orca_home, endpoint, strata_model)
+
+    orca_file = appdata_orca / "Orca" / "profiles" / "local-default" / "orca-data.json"
+    orca_data = json.loads(orca_file.read_text(encoding="utf-8"))
+    settings = orca_data["settings"]
+
+    # Both "claude" and "claude-local" must route to the offline runner
+    assert "claude" in settings["agentCmdOverrides"]
+    assert "claude-local" in settings["agentCmdOverrides"]
+    assert "claude-local" in settings["agentCmdOverrides"]["claude"]
+    assert "claude-local" in settings["agentCmdOverrides"]["claude-local"]
+
+    # Both "claude" and "claude-local" env must contain offline telemetry blocks and local endpoint
+    claude_env = settings["agentDefaultEnv"]["claude"]
+    assert claude_env["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:8080"
+    assert "local" in claude_env["CLAUDE_CONFIG_DIR"]
+    assert claude_env["DISABLE_TELEMETRY"] == "1"
+
+    # 2. Standalone T3 Code
+    t3_home = tmp_path / ".t3_standalone"
+    t3_userdata = tmp_path / "t3_userdata_standalone"
+    monkeypatch.setenv("T3CODE_BASE_DIR", str(t3_userdata))
+    monkeypatch.setattr(config, "choose_harness", ["t3"])
+
+    setup_t3_config(t3_home, endpoint, strata_model)
+
+    t3_settings_file = t3_userdata / "settings.json"
+    t3_settings = json.loads(t3_settings_file.read_text(encoding="utf-8"))
+
+    # Native claudeAgent provider configuration
+    claude_agent_cfg = t3_settings["providers"]["claudeAgent"]
+    assert claude_agent_cfg["enabled"] is True
+    assert "local" in claude_agent_cfg["homePath"]
+    assert claude_agent_cfg["binaryPath"]
+
+    # OpenCode providerInstance for Claude Code
+    claude_inst = t3_settings["providerInstances"]["claude"]
+    assert claude_inst["enabled"] is True
+    assert claude_inst["driver"] == "opencode"
+    env_keys = {item["name"]: item["value"] for item in claude_inst["environment"]}
+    assert env_keys.get("ANTHROPIC_BASE_URL") == "http://127.0.0.1:8080"
+    assert "local" in env_keys.get("CLAUDE_CONFIG_DIR", "")
+
+    # opencode_claude.json and caches/claude.json exist
+    assert (t3_home / "opencode_claude.json").exists()
+    assert (t3_userdata.parent / "caches" / "claude.json").exists()
+
+    # 3. Combined meta-harness with other harnesses (e.g. choose_harness = ["orca", "pi"] and ["t3", "hermes"])
+    monkeypatch.setattr(config, "choose_harness", ["orca", "pi"])
+    setup_orca_config(orca_home, endpoint, strata_model)
+    orca_data_comb = json.loads(orca_file.read_text(encoding="utf-8"))
+    assert orca_data_comb["settings"]["defaultTuiAgent"] == "pi"
+    # Offline Claude is STILL available in overrides and env
+    assert "claude" in orca_data_comb["settings"]["agentCmdOverrides"]
+    assert orca_data_comb["settings"]["agentDefaultEnv"]["claude"]["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:8080"
+
+    monkeypatch.setattr(config, "choose_harness", ["t3", "hermes"])
+    setup_t3_config(t3_home, endpoint, strata_model)
+    t3_settings_comb = json.loads(t3_settings_file.read_text(encoding="utf-8"))
+    assert t3_settings_comb["defaultModelSelection"]["instanceId"] == "hermes"
+    # Offline Claude is STILL available in claudeAgent and providerInstances
+    assert "local" in t3_settings_comb["providers"]["claudeAgent"]["homePath"]
+    assert "claude" in t3_settings_comb["providerInstances"]
+
+
+def test_meta_harnesses_expose_online_claude_when_non_strata_or_official(tmp_path, monkeypatch):
+    """Verify that when Strata engine is not active, or claude_mode is 'official',
+    both Orca ADE and T3 Code cleanly fall back to standard online Claude mode
+    (no local runner command overrides, no local CLAUDE_CONFIG_DIR).
+    """
+    from local_ai_launcher.harnesses.orca import setup_orca_config
+    from local_ai_launcher.harnesses.t3 import setup_t3_config
+
+    endpoint = "http://127.0.0.1:8080/v1"
+
+    # Case A: Non-Strata model (e.g. cyber-tiel-coder-35b)
+    non_strata_model = "cyber-tiel-coder-35b"
+    orca_home = tmp_path / ".orca_online_a"
+    appdata_orca = tmp_path / "AppData_online_a"
+    t3_home = tmp_path / ".t3_online_a"
+    t3_userdata = tmp_path / "t3_userdata_online_a"
+    monkeypatch.setenv("APPDATA", str(appdata_orca))
+    monkeypatch.setenv("T3CODE_BASE_DIR", str(t3_userdata))
+    monkeypatch.setattr(config, "choose_harness", ["orca", "t3"])
+    monkeypatch.setattr(config, "default_model", non_strata_model)
+    monkeypatch.setattr(config, "claude_mode", "local")
+    monkeypatch.setattr(config, "orca_data_dir", tmp_path / "orca_data_online_a")
+
+    setup_orca_config(orca_home, endpoint, non_strata_model)
+    setup_t3_config(t3_home, endpoint, non_strata_model)
+
+    orca_data = json.loads((appdata_orca / "Orca" / "profiles" / "local-default" / "orca-data.json").read_text(encoding="utf-8"))
+    # No offline claude runner override in Orca
+    assert "claude" not in orca_data["settings"].get("agentCmdOverrides", {})
+    assert "claude-local" not in orca_data["settings"].get("agentCmdOverrides", {})
+    assert orca_data["settings"]["agentDefaultEnv"]["claude"]["CLAUDE_CONFIG_DIR"] == ""
+
+    t3_settings = json.loads((t3_userdata / "settings.json").read_text(encoding="utf-8"))
+    # T3 claudeAgent homePath is empty (online ~/.claude)
+    assert t3_settings["providers"]["claudeAgent"]["homePath"] == ""
+    claude_inst_env = {item["name"]: item["value"] for item in t3_settings["providerInstances"]["claude"]["environment"]}
+    assert claude_inst_env.get("CLAUDE_CONFIG_DIR") == ""
+    assert "ANTHROPIC_BASE_URL" not in claude_inst_env
+
+    # Case B: Strata model with claude_mode = "official"
+    strata_model = "qwen-38-flash-strata-iq3s"
+    orca_home_b = tmp_path / ".orca_online_b"
+    appdata_orca_b = tmp_path / "AppData_online_b"
+    t3_home_b = tmp_path / ".t3_online_b"
+    t3_userdata_b = tmp_path / "t3_userdata_online_b"
+    monkeypatch.setenv("APPDATA", str(appdata_orca_b))
+    monkeypatch.setenv("T3CODE_BASE_DIR", str(t3_userdata_b))
+    monkeypatch.setattr(config, "choose_harness", ["orca", "t3"])
+    monkeypatch.setattr(config, "default_model", strata_model)
+    monkeypatch.setattr(config, "claude_mode", "official")
+    monkeypatch.setattr(config, "orca_data_dir", tmp_path / "orca_data_online_b")
+
+    setup_orca_config(orca_home_b, endpoint, strata_model)
+    setup_t3_config(t3_home_b, endpoint, strata_model)
+
+    orca_data_b = json.loads((appdata_orca_b / "Orca" / "profiles" / "local-default" / "orca-data.json").read_text(encoding="utf-8"))
+    assert "claude" not in orca_data_b["settings"].get("agentCmdOverrides", {})
+    assert "claude-local" not in orca_data_b["settings"].get("agentCmdOverrides", {})
+    assert orca_data_b["settings"]["agentDefaultEnv"]["claude"]["CLAUDE_CONFIG_DIR"] == ""
+
+    t3_settings_b = json.loads((t3_userdata_b / "settings.json").read_text(encoding="utf-8"))
+    assert t3_settings_b["providers"]["claudeAgent"]["homePath"] == ""
+    claude_inst_env_b = {item["name"]: item["value"] for item in t3_settings_b["providerInstances"]["claude"]["environment"]}
+    assert claude_inst_env_b.get("CLAUDE_CONFIG_DIR") == ""
+    assert "ANTHROPIC_BASE_URL" not in claude_inst_env_b
+
+
+

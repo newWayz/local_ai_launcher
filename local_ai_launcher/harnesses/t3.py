@@ -218,16 +218,15 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
         }
     }
 
-    if default_harness == "claude":
-        opencode_config_data["provider"]["claude"] = claude_provider_spec
-        opencode_config_data["command"]["claude"] = {
-            "description": "Delegate coding tasks to Claude Code CLI agent",
-            "template": f"Use Claude Code CLI agent to complete this task: $ARGUMENTS"
-        }
-        opencode_config_data["agent"]["claude"] = {
-            "description": "Claude Code CLI Agent",
-            "mode": "subagent"
-        }
+    opencode_config_data["provider"]["claude"] = claude_provider_spec
+    opencode_config_data["command"]["claude"] = {
+        "description": "Delegate coding tasks to Claude Code CLI agent",
+        "template": f"Use Claude Code CLI agent to complete this task: $ARGUMENTS"
+    }
+    opencode_config_data["agent"]["claude"] = {
+        "description": "Claude Code CLI Agent",
+        "mode": "subagent"
+    }
 
     from local_ai_launcher.paths import atomic_write_json
 
@@ -266,17 +265,16 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
     atomic_write_json(hermes_config_file, opencode_hermes_config)
 
     claude_config_file = t3_home / "opencode_claude.json"
-    if default_harness == "claude":
-        opencode_claude_config = {
-            "$schema": "https://opencode.ai/config.json",
-            "enabled_providers": ["claude"],
-            "disabled_providers": ["openai", "opencode", "anthropic", "google", "localai", "pi", "hermes"],
-            "provider": {
-                "claude": dict(claude_provider_spec, name=" ")
-            },
-            "model": f"claude/{model_name}"
-        }
-        atomic_write_json(claude_config_file, opencode_claude_config)
+    opencode_claude_config = {
+        "$schema": "https://opencode.ai/config.json",
+        "enabled_providers": ["claude"],
+        "disabled_providers": ["openai", "opencode", "anthropic", "google", "localai", "pi", "hermes"],
+        "provider": {
+            "claude": dict(claude_provider_spec, name=" ")
+        },
+        "model": f"claude/{model_name}"
+    }
+    atomic_write_json(claude_config_file, opencode_claude_config)
 
     # 3. Global User Data Configuration
     # Uses T3CODE_BASE_DIR if set, otherwise defaults to workspace-contained directory
@@ -341,6 +339,31 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
         {"name": "XDG_STATE_HOME", "value": hermes_state_dir.as_posix()},
     ]
 
+    from local_ai_launcher.harnesses.claude import (
+        is_claude_offline_mode_active,
+        ensure_claude_local_profile,
+        get_claude_local_env,
+        resolve_claude_permission_mode,
+        resolve_claude_context_and_compact,
+        ClaudeAdapter,
+    )
+    claude_offline = is_claude_offline_mode_active(active_model)
+    claude_adapter = ClaudeAdapter(AI_WORKSPACE_DIR, [])
+    claude_exe_path = claude_adapter._resolve_executable() or shutil.which("claude") or "claude"
+
+    if claude_offline:
+        claude_local_dir = ensure_claude_local_profile(llm_base_url, active_model)
+        claude_local_env = get_claude_local_env(llm_base_url, active_model)
+        eff_perm_mode = resolve_claude_permission_mode(is_desktop=False)
+        claude_launch_args = "--dangerously-skip-permissions" if eff_perm_mode == "bypassPermissions" else ""
+        _, auto_compact = resolve_claude_context_and_compact(model_name, is_desktop=False)
+        auto_compact_str = str(auto_compact) if (auto_compact and 100000 <= auto_compact <= 1000000) else ""
+    else:
+        claude_local_dir = None
+        claude_local_env = {}
+        claude_launch_args = ""
+        auto_compact_str = ""
+
     for target_dir in [global_t3_dir, real_user_t3_dir]:
         try:
             target_dir.mkdir(parents=True, exist_ok=True)
@@ -370,6 +393,20 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
 
             codex_cfg = providers.setdefault("codex", {})
             codex_cfg.setdefault("enabled", True)
+
+            claude_agent_cfg = providers.setdefault("claudeAgent", {})
+            if claude_offline:
+                claude_agent_cfg["enabled"] = True
+                claude_agent_cfg["binaryPath"] = str(claude_exe_path)
+                claude_agent_cfg["homePath"] = str(claude_local_dir)
+                claude_agent_cfg["launchArgs"] = claude_launch_args
+                claude_agent_cfg["autoCompactWindow"] = auto_compact_str
+            else:
+                claude_agent_cfg["enabled"] = True
+                claude_agent_cfg["binaryPath"] = "claude"
+                claude_agent_cfg["homePath"] = ""
+                claude_agent_cfg["launchArgs"] = ""
+                claude_agent_cfg["autoCompactWindow"] = ""
 
             provider_instances = data.setdefault("providerInstances", {})
             # Remove server-level entries from providerInstances so only harnesses appear
@@ -402,30 +439,35 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
                 }
             }
 
-            if default_harness == "claude":
-                claude_data_dir = t3_home / "opencode_data" / "claude"
-                claude_cache_dir = t3_home / "opencode_cache" / "claude"
-                claude_state_dir = t3_home / "opencode_state" / "claude"
-                for d in [claude_data_dir, claude_cache_dir, claude_state_dir]:
-                    d.mkdir(parents=True, exist_ok=True)
-                claude_env = list(local_env) + [
-                    {"name": "OPENCODE_CONFIG", "value": (t3_home / "opencode_claude.json").as_posix()},
-                    {"name": "XDG_DATA_HOME", "value": claude_data_dir.as_posix()},
-                    {"name": "XDG_CACHE_HOME", "value": claude_cache_dir.as_posix()},
-                    {"name": "XDG_STATE_HOME", "value": claude_state_dir.as_posix()},
-                ]
-                provider_instances["claude"] = {
-                    "driver": "opencode",
-                    "displayName": "Claude Code",
-                    "accentColor": "#d97706",
-                    "enabled": True,
-                    "environment": claude_env,
-                    "models": models_list,
-                    "config": {
-                        "binaryPath": str(opencode_exe),
-                        "models": models_list
-                    }
+            claude_data_dir = t3_home / "opencode_data" / "claude"
+            claude_cache_dir = t3_home / "opencode_cache" / "claude"
+            claude_state_dir = t3_home / "opencode_state" / "claude"
+            for d in [claude_data_dir, claude_cache_dir, claude_state_dir]:
+                d.mkdir(parents=True, exist_ok=True)
+            claude_env = list(local_env) + [
+                {"name": "OPENCODE_CONFIG", "value": (t3_home / "opencode_claude.json").as_posix()},
+                {"name": "XDG_DATA_HOME", "value": claude_data_dir.as_posix()},
+                {"name": "XDG_CACHE_HOME", "value": claude_cache_dir.as_posix()},
+                {"name": "XDG_STATE_HOME", "value": claude_state_dir.as_posix()},
+            ]
+            if claude_offline:
+                for k, v in claude_local_env.items():
+                    claude_env.append({"name": k, "value": str(v)})
+            else:
+                claude_env.append({"name": "CLAUDE_CONFIG_DIR", "value": ""})
+
+            provider_instances["claude"] = {
+                "driver": "opencode",
+                "displayName": "Claude Code",
+                "accentColor": "#d97706",
+                "enabled": True,
+                "environment": claude_env,
+                "models": models_list,
+                "config": {
+                    "binaryPath": str(opencode_exe),
+                    "models": models_list
                 }
+            }
 
             # Clean up any legacy or misleading serverUrl in providerInstances
             for inst_id, inst_cfg in list(provider_instances.items()):
@@ -460,7 +502,10 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
         cache_dir = target_dir.parent / "caches"
         try:
             cache_dir.mkdir(parents=True, exist_ok=True)
-            for stale_cache in ["localai.json", "openai.json", "opencode.json"]:
+            stale_caches = ["localai.json", "openai.json", "opencode.json"]
+            if claude_offline:
+                stale_caches.append("claudeAgent.json")
+            for stale_cache in stale_caches:
                 stale_file = cache_dir / stale_cache
                 if stale_file.exists():
                     try:
@@ -470,9 +515,7 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
 
             from datetime import datetime, timezone
             now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-            harness_cache_list = [("pi", "Pi Coding Harness"), ("hermes", "Hermes")]
-            if default_harness == "claude":
-                harness_cache_list.append(("claude", "Claude Code"))
+            harness_cache_list = [("pi", "Pi Coding Harness"), ("hermes", "Hermes"), ("claude", "Claude Code")]
             for h_id, h_disp in harness_cache_list:
                 h_models = []
                 for m in models_list:
@@ -746,12 +789,21 @@ class T3Adapter(HarnessAdapter):
         from local_ai_launcher.context_preloader import preload_harness_context
         preload_harness_context(llm_base_url, model_name, harness_name="t3")
 
-        # Prepare extra bin directories for Pi and Hermes CLI execution inside T3 Code sessions
+        from local_ai_launcher.harnesses.claude import (
+            is_claude_offline_mode_active,
+            get_claude_local_env,
+        )
+        claude_offline = is_claude_offline_mode_active(active_model)
+        claude_local_env = get_claude_local_env(llm_base_url, active_model) if claude_offline else {}
+
+        # Prepare extra bin directories for Pi, Hermes, and Claude CLI execution inside T3 Code sessions
         extra_bin_dirs = [
             str(AI_WORKSPACE_DIR / "node"),
             str(AI_WORKSPACE_DIR / ".hermes" / "bin"),
             str(AI_WORKSPACE_DIR / "node_modules" / ".bin"),
         ]
+        if claude_offline:
+            extra_bin_dirs.append(str(AI_WORKSPACE_DIR / ".claude" / "local"))
         if getattr(config, "aside_browser_enabled", True):
             try:
                 from local_ai_launcher.paths import get_aside_binary_path
@@ -785,6 +837,10 @@ class T3Adapter(HarnessAdapter):
                 desktop_env['npm_config_allow_git'] = "all"
                 desktop_env['T3CODE_PORT'] = str(t3_port)
                 desktop_env['T3CODE_BASE_DIR'] = str(self.t3_home)
+                if claude_offline:
+                    desktop_env.update(claude_local_env)
+                else:
+                    desktop_env["CLAUDE_CONFIG_DIR"] = ""
 
                 current_path = desktop_env.get("PATH", "")
                 new_paths = [p for p in extra_bin_dirs if p.lower() not in current_path.lower()]
@@ -813,7 +869,7 @@ class T3Adapter(HarnessAdapter):
             new_paths = [p for p in extra_bin_dirs if p.lower() not in current_path.lower()]
             updated_path = os.pathsep.join(new_paths) + os.pathsep + current_path if new_paths else current_path
 
-            env_setup = build_ps_env({
+            cli_env_map = {
                 'OPENAI_BASE_URL': llm_base_url,
                 'OPENAI_API_BASE': llm_base_url,
                 'OPENAI_API_KEY': 'dummy',
@@ -830,7 +886,12 @@ class T3Adapter(HarnessAdapter):
                 'PATH': updated_path,
                 'T3CODE_PORT': str(t3_port),
                 'T3CODE_BASE_DIR': str(self.t3_home),
-            })
+            }
+            if claude_offline:
+                cli_env_map.update(claude_local_env)
+            else:
+                cli_env_map["CLAUDE_CONFIG_DIR"] = ""
+            env_setup = build_ps_env(cli_env_map)
 
             encoding_preamble = (
                 "chcp 65001 | Out-Null; "
