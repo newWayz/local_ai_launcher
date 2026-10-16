@@ -122,6 +122,7 @@ def setup_orca_config(orca_home: Path, llm_base_url: str, active_model: Optional
             "OPENAI_MODEL": model_name,
             "MODEL": model_name,
             "HOME": str(AI_WORKSPACE_DIR),
+            "USERPROFILE": str(AI_WORKSPACE_DIR),
             "PI_HOME": str(AI_WORKSPACE_DIR / ".pi"),
             "PI_CODING_AGENT_DIR": str(AI_WORKSPACE_DIR / ".pi" / "agent"),
             "PI_SKIP_VERSION_CHECK": "1",
@@ -144,8 +145,9 @@ def setup_orca_config(orca_home: Path, llm_base_url: str, active_model: Optional
                 agent_dict[k] = v
         if "omp" in default_env:
             default_env["omp"]["OMP_HOME"] = str(AI_WORKSPACE_DIR / ".omp")
-            default_env["omp"]["PI_CONFIG_DIR"] = str(AI_WORKSPACE_DIR / ".omp")
+            default_env["omp"]["PI_CONFIG_DIR"] = ".omp"
             default_env["omp"]["PI_CODING_AGENT_DIR"] = str(AI_WORKSPACE_DIR / ".omp" / "agent")
+            default_env["omp"]["USERPROFILE"] = str(AI_WORKSPACE_DIR)
 
         # Claude Code CLI: Local vs Official isolation in Orca ADE
         from local_ai_launcher.harnesses.claude import (

@@ -246,10 +246,12 @@ def setup_omp_mcp_config(omp_home: Path) -> None:
     else:
         mcp_servers.pop("aside", None)
 
-    try:
-        atomic_write_json(mcp_file, current_data)
-    except Exception as e:
-        logger.warning(f"Warning: Could not write OMP MCP config to {mcp_file}: {e}")
+    for target_dir in [agent_dir, omp_home]:
+        try:
+            target_dir.mkdir(parents=True, exist_ok=True)
+            atomic_write_json(target_dir / "mcp.json", current_data)
+        except Exception as e:
+            logger.warning(f"Warning: Could not write OMP MCP config to {target_dir}: {e}")
 
 
 class OmpAdapter(HarnessAdapter):
@@ -327,10 +329,13 @@ class OmpAdapter(HarnessAdapter):
         ensure_bun()
 
         # Build scoped subprocess environment without permanently mutating process-global os.environ
+        omp_home_resolved = self.omp_home.resolve()
         sub_env = os.environ.copy()
-        sub_env['OMP_HOME'] = str(self.omp_home)
-        sub_env['PI_CONFIG_DIR'] = str(self.omp_home)
-        sub_env['PI_CODING_AGENT_DIR'] = str(self.omp_home / "agent")
+        sub_env['HOME'] = str(AI_WORKSPACE_DIR)
+        sub_env['USERPROFILE'] = str(omp_home_resolved.parent)
+        sub_env['OMP_HOME'] = str(omp_home_resolved)
+        sub_env['PI_CONFIG_DIR'] = omp_home_resolved.name
+        sub_env['PI_CODING_AGENT_DIR'] = str(omp_home_resolved / "agent")
         sub_env['OPENAI_API_KEY'] = 'dummy'
         sub_env['npm_config_allow_git'] = 'all'
 
@@ -406,18 +411,19 @@ class OmpAdapter(HarnessAdapter):
                 return False
 
     def start(self, llm_base_url, active_model=None, launch_tui=True):
-        omp_agent_dir = self.omp_home / "agent"
+        omp_home_resolved = self.omp_home.resolve()
+        omp_agent_dir = omp_home_resolved / "agent"
         omp_agent_dir.mkdir(parents=True, exist_ok=True)
 
         # Auto-configure models, mcp, extensions, and auth specifically for OMP
         setup_omp_models_and_auth(
-            self.omp_home,
+            omp_home_resolved,
             llm_base_url,
             active_model,
             use_omniroute=config.use_omniroute_proxy,
             omniroute_model=config.omniroute_default_model
         )
-        setup_omp_mcp_config(self.omp_home)
+        setup_omp_mcp_config(omp_home_resolved)
         self.ensure_extensions_and_skills()
 
         model_name = resolve_model_name(active_model)
@@ -438,8 +444,10 @@ class OmpAdapter(HarnessAdapter):
             'OPENAI_BASE_URL': llm_base_url,
             'OPENAI_API_BASE': llm_base_url,
             'OPENAI_API_KEY': 'dummy',
-            'OMP_HOME': str(self.omp_home),
-            'PI_CONFIG_DIR': str(self.omp_home),
+            'HOME': str(AI_WORKSPACE_DIR),
+            'USERPROFILE': str(omp_home_resolved.parent),
+            'OMP_HOME': str(omp_home_resolved),
+            'PI_CONFIG_DIR': omp_home_resolved.name,
             'PI_CODING_AGENT_DIR': str(omp_agent_dir),
             'PI_SKIP_VERSION_CHECK': '1',
             'npm_config_allow_git': 'all',

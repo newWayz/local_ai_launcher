@@ -553,6 +553,8 @@ def run_harnesses(processes, selected_harnesses, active_model_url, llm_thread):
                 adapter.start(active_model_url, config.default_model, launch_tui=False, open_browser=False, auxiliary_only=True)
             elif h_name in ("openlumara", "lumara"):
                 adapter.start(active_model_url, config.default_model, launch_tui=False)
+            elif h_name == "omp":
+                adapter.start(active_model_url, config.default_model, launch_tui=False)
             else:
                 adapter.start(active_model_url, config.default_model)
         else:

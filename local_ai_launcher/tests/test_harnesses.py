@@ -3847,9 +3847,54 @@ def test_omp_adapter_executable_and_start(tmp_path, monkeypatch):
     assert title == "Oh My Pi"
     assert "$env:OMP_HOME=" in cmd_str
     assert "$env:OPENAI_BASE_URL=" in cmd_str
+    assert "$env:USERPROFILE=" in cmd_str
+    assert "$env:PI_CONFIG_DIR='.omp'" in cmd_str or "$env:PI_CONFIG_DIR='" + omp_home.name + "'" in cmd_str
+    assert ":\\" not in cmd_str.split("$env:PI_CONFIG_DIR=")[1].split(";")[0]
+    assert ":/" not in cmd_str.split("$env:PI_CONFIG_DIR=")[1].split(";")[0]
     assert "--provider openai --model test-omp-model" in cmd_str
     assert len(dummy_processes) == 1
     assert dummy_processes[0][0] == "Oh My Pi coding agent"
+
+
+def test_omp_windows_path_resolution_regression(tmp_path, monkeypatch):
+    """Verify that OMP environment prevents Windows double-drive path concatenation in Tie() and hEs()."""
+    import os
+    from pathlib import Path
+    from local_ai_launcher.harnesses.omp import OmpAdapter, setup_omp_mcp_config
+
+    omp_home = tmp_path / ".omp"
+    monkeypatch.setattr(config, "omp_dir", omp_home)
+    adapter = OmpAdapter(str(tmp_path), [])
+
+    started_commands = []
+    monkeypatch.setattr("local_ai_launcher.harnesses.omp.start_in_wt_tab", lambda cmd, cwd=None, title=None: started_commands.append(cmd))
+    adapter.start("http://localhost:8080/v1", "test-model", launch_tui=True)
+
+    assert len(started_commands) == 1
+    cmd_str = started_commands[0]
+
+    # Verify PI_CONFIG_DIR is relative (no drive letters)
+    import re
+    m_cfg = re.search(r"\$env:PI_CONFIG_DIR='([^']*)'", cmd_str)
+    assert m_cfg is not None
+    pi_config_dir_val = m_cfg.group(1)
+    assert not Path(pi_config_dir_val).is_absolute()
+    assert pi_config_dir_val == ".omp"
+
+    # Verify USERPROFILE is parent of omp_home
+    m_user = re.search(r"\$env:USERPROFILE='([^']*)'", cmd_str)
+    assert m_user is not None
+    userprofile_val = m_user.group(1)
+    assert Path(userprofile_val).resolve() == omp_home.parent.resolve()
+
+    # Verify path.join simulation
+    simulated_config_root = Path(userprofile_val) / pi_config_dir_val
+    assert simulated_config_root.resolve() == omp_home.resolve()
+
+    # Verify MCP config written to both agent_dir and omp_home
+    setup_omp_mcp_config(omp_home)
+    assert (omp_home / "mcp.json").is_file()
+    assert (omp_home / "agent" / "mcp.json").is_file()
 
 
 def test_context_preloader_omp_prefix():
