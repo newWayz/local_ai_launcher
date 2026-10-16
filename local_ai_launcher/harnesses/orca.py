@@ -144,6 +144,7 @@ def setup_orca_config(orca_home: Path, llm_base_url: str, active_model: Optional
                 agent_dict[k] = v
         if "omp" in default_env:
             default_env["omp"]["OMP_HOME"] = str(AI_WORKSPACE_DIR / ".omp")
+            default_env["omp"]["PI_CONFIG_DIR"] = str(AI_WORKSPACE_DIR / ".omp")
             default_env["omp"]["PI_CODING_AGENT_DIR"] = str(AI_WORKSPACE_DIR / ".omp" / "agent")
 
         # Claude Code CLI: Local vs Official isolation in Orca ADE

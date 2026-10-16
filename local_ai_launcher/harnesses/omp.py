@@ -29,6 +29,7 @@ from local_ai_launcher.config import (
 )
 from local_ai_launcher.environment import (
     get_npm_exe,
+    ensure_bun,
     NPM_SHELL,
 )
 from local_ai_launcher.models import (
@@ -277,12 +278,61 @@ class OmpAdapter(HarnessAdapter):
     def get_needed_libs(self):
         return []
 
+    def ensure_extensions_and_skills(self):
+        """Ensure extensions and skills defined for Oh My Pi are provisioned in .omp/agent/."""
+        # Ensure builtin skills (deep-solve, cpu-tools, wipe-agy-chat, update-skills) are provisioned in Gateway (.agents/skills)
+        try:
+            from local_ai_launcher.skills_manager import SkillManager
+            SkillManager().ensure_builtin_skills()
+            legacy_omp_skills = self.omp_home / "skills"
+            if legacy_omp_skills.exists():
+                shutil.rmtree(legacy_omp_skills, ignore_errors=True)
+        except Exception as e:
+            logger.warning(f"  -> Warning: Failed to provision skills for Oh My Pi: {e}")
+
+        # Provision shims to .omp/agent/extensions/
+        try:
+            from local_ai_launcher.paths import LOCAL_AI_LAUNCHER_DIR, atomic_write_text
+            ext_dir = self.omp_home / "agent" / "extensions"
+            ext_dir.mkdir(parents=True, exist_ok=True)
+
+            shim_src = LOCAL_AI_LAUNCHER_DIR / "shims" / "loop_recovery.ts"
+            target_ext = ext_dir / "loop-recovery.ts"
+            if shim_src.exists():
+                src_text = shim_src.read_text(encoding="utf-8")
+                if not target_ext.exists() or target_ext.read_text(encoding="utf-8") != src_text:
+                    atomic_write_text(target_ext, src_text)
+                    logger.info(f"  -> Provisioned loop-recovery extension to {target_ext}")
+
+            cpu_tools_src = LOCAL_AI_LAUNCHER_DIR / "shims" / "cpu_tools.ts"
+            target_cpu_tools = ext_dir / "cpu-tools.ts"
+            if cpu_tools_src.exists():
+                cpu_text = cpu_tools_src.read_text(encoding="utf-8")
+                if not target_cpu_tools.exists() or target_cpu_tools.read_text(encoding="utf-8") != cpu_text:
+                    atomic_write_text(target_cpu_tools, cpu_text)
+                    logger.info(f"  -> Provisioned cpu-tools extension to {target_cpu_tools}")
+
+            auto_cycle_src = LOCAL_AI_LAUNCHER_DIR / "shims" / "auto_cycle.ts"
+            target_auto_cycle = ext_dir / "auto-cycle.ts"
+            if auto_cycle_src.exists():
+                cycle_text = auto_cycle_src.read_text(encoding="utf-8")
+                if not target_auto_cycle.exists() or target_auto_cycle.read_text(encoding="utf-8") != cycle_text:
+                    atomic_write_text(target_auto_cycle, cycle_text)
+                    logger.info(f"  -> Provisioned auto-cycle extension to {target_auto_cycle}")
+        except Exception as e:
+            logger.warning(f"  -> Warning: Failed to provision extensions for Oh My Pi: {e}")
+
     def check(self):
         logger.info("\nChecking for Oh My Pi (omp) coding harness...")
-        os.environ['OMP_HOME'] = str(self.omp_home)
-        os.environ['PI_CODING_AGENT_DIR'] = str(self.omp_home / "agent")
-        os.environ['OPENAI_API_KEY'] = 'dummy'
-        os.environ['npm_config_allow_git'] = 'all'
+        ensure_bun()
+
+        # Build scoped subprocess environment without permanently mutating process-global os.environ
+        sub_env = os.environ.copy()
+        sub_env['OMP_HOME'] = str(self.omp_home)
+        sub_env['PI_CONFIG_DIR'] = str(self.omp_home)
+        sub_env['PI_CODING_AGENT_DIR'] = str(self.omp_home / "agent")
+        sub_env['OPENAI_API_KEY'] = 'dummy'
+        sub_env['npm_config_allow_git'] = 'all'
 
         is_installed = (
             (self.node_bin / "omp.cmd").exists()
@@ -297,8 +347,7 @@ class OmpAdapter(HarnessAdapter):
                 logger.info("Updating Oh My Pi (omp) coding harness...")
                 updated_ok = False
                 omp_cmd_str = str(self.omp_exe) if self.omp_exe.exists() else "omp"
-                env = os.environ.copy()
-                env['npm_config_allow_git'] = 'all'
+                env = sub_env.copy()
                 env.pop('npm_config_allow_scripts', None)
 
                 # Primary: native self-update
@@ -312,7 +361,7 @@ class OmpAdapter(HarnessAdapter):
                 if not updated_ok:
                     try:
                         npm_exe = get_npm_exe()
-                        _run_silent([npm_exe, "install", "-g", "--ignore-scripts", "@oh-my-pi/pi-coding-agent@latest"], shell=NPM_SHELL, check=True)
+                        _run_silent([npm_exe, "install", "-g", "--ignore-scripts", "@oh-my-pi/pi-coding-agent@latest"], shell=NPM_SHELL, check=True, env=env)
                         logger.info("  -> Oh My Pi updated successfully via npm global install.")
                         updated_ok = True
                     except Exception as e:
@@ -322,6 +371,7 @@ class OmpAdapter(HarnessAdapter):
                     self.record_update()
 
             setup_omp_mcp_config(self.omp_home)
+            self.ensure_extensions_and_skills()
             return True
         else:
             logger.info("  -> Oh My Pi (omp) coding harness is not installed.")
@@ -332,11 +382,21 @@ class OmpAdapter(HarnessAdapter):
                     _run_silent(
                         [npm_exe, "install", "--prefix", str(AI_WORKSPACE_DIR), "@oh-my-pi/pi-coding-agent"],
                         shell=NPM_SHELL,
-                        check=True
+                        check=True,
+                        env=sub_env
                     )
                     logger.info("  -> Oh My Pi coding harness installed successfully.")
+                    # Sync trampolines to node_bin if available
+                    if (self.local_bin / "omp.cmd").exists() and self.node_bin.exists():
+                        try:
+                            shutil.copy2(self.local_bin / "omp.cmd", self.node_bin / "omp.cmd")
+                            if (self.local_bin / "omp.ps1").exists():
+                                shutil.copy2(self.local_bin / "omp.ps1", self.node_bin / "omp.ps1")
+                        except Exception:
+                            pass
                     self.omp_exe = self._resolve_executable()
                     setup_omp_mcp_config(self.omp_home)
+                    self.ensure_extensions_and_skills()
                     return True
                 except subprocess.CalledProcessError as e:
                     logger.error(f"  -> Failed to install Oh My Pi: {e}")
@@ -349,12 +409,7 @@ class OmpAdapter(HarnessAdapter):
         omp_agent_dir = self.omp_home / "agent"
         omp_agent_dir.mkdir(parents=True, exist_ok=True)
 
-        os.environ['OMP_HOME'] = str(self.omp_home)
-        os.environ['PI_CODING_AGENT_DIR'] = str(omp_agent_dir)
-        os.environ['OPENAI_API_KEY'] = 'dummy'
-        os.environ['npm_config_allow_git'] = 'all'
-
-        # Auto-configure models and auth specifically for OMP
+        # Auto-configure models, mcp, extensions, and auth specifically for OMP
         setup_omp_models_and_auth(
             self.omp_home,
             llm_base_url,
@@ -363,6 +418,7 @@ class OmpAdapter(HarnessAdapter):
             omniroute_model=config.omniroute_default_model
         )
         setup_omp_mcp_config(self.omp_home)
+        self.ensure_extensions_and_skills()
 
         model_name = resolve_model_name(active_model)
 
@@ -383,6 +439,7 @@ class OmpAdapter(HarnessAdapter):
             'OPENAI_API_BASE': llm_base_url,
             'OPENAI_API_KEY': 'dummy',
             'OMP_HOME': str(self.omp_home),
+            'PI_CONFIG_DIR': str(self.omp_home),
             'PI_CODING_AGENT_DIR': str(omp_agent_dir),
             'PI_SKIP_VERSION_CHECK': '1',
             'npm_config_allow_git': 'all',
@@ -399,3 +456,4 @@ class OmpAdapter(HarnessAdapter):
             self.processes.append(('Oh My Pi coding agent', omp_process, self.TRACK_CONSOLE_CLOSE))
         except Exception as e:
             logger.error(f"Error starting Oh My Pi: {e}")
+

@@ -899,6 +899,7 @@ class T3Adapter(HarnessAdapter):
                 desktop_env['MODEL'] = model_name
                 desktop_env['HOME'] = str(AI_WORKSPACE_DIR)
                 desktop_env['PI_HOME'] = str(AI_WORKSPACE_DIR / ".pi")
+                desktop_env['OMP_HOME'] = str(AI_WORKSPACE_DIR / ".omp")
                 desktop_env['PI_CODING_AGENT_DIR'] = str(AI_WORKSPACE_DIR / ".pi" / "agent")
                 desktop_env['PI_SKIP_VERSION_CHECK'] = "1"
                 desktop_env['HERMES_HOME'] = str(AI_WORKSPACE_DIR / ".hermes")
@@ -947,6 +948,7 @@ class T3Adapter(HarnessAdapter):
                 'MODEL': model_name,
                 'HOME': str(AI_WORKSPACE_DIR),
                 'PI_HOME': str(AI_WORKSPACE_DIR / ".pi"),
+                'OMP_HOME': str(AI_WORKSPACE_DIR / ".omp"),
                 'PI_CODING_AGENT_DIR': str(AI_WORKSPACE_DIR / ".pi" / "agent"),
                 'PI_SKIP_VERSION_CHECK': '1',
                 'HERMES_HOME': str(AI_WORKSPACE_DIR / ".hermes"),

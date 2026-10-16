@@ -241,3 +241,38 @@ def test_check_git_lifecycle(monkeypatch):
         assert any("update-git-for-windows" in " ".join(c) for c in executed_cmds)
 
 
+def test_ensure_bun(tmp_path, monkeypatch):
+    """Verify ensure_bun finds bun executable in PATH or workspace bin."""
+    from local_ai_launcher.environment import ensure_bun
+
+    fake_bun = tmp_path / "bun.exe"
+    fake_bun.write_text("bun 1.4.3", encoding="utf-8")
+    monkeypatch.setattr("shutil.which", lambda cmd: str(fake_bun) if "bun" in cmd else None)
+
+    bun_exe = ensure_bun()
+    assert bun_exe is not None
+    assert bun_exe.endswith("bun.exe")
+
+
+def test_setup_windows_environment_variables_includes_omp(monkeypatch):
+    """Verify setup_windows_environment_variables registers OMP_HOME."""
+    import sys
+    from local_ai_launcher.environment import setup_windows_environment_variables
+
+    monkeypatch.setattr(sys, "platform", "win32")
+    recorded_vars = {}
+
+    def mock_setup_workspace_path():
+        pass
+
+    monkeypatch.setattr("local_ai_launcher.environment._setup_workspace_path", mock_setup_workspace_path)
+    monkeypatch.setattr("local_ai_launcher.environment.ensure_directory_junction", lambda *args: True)
+
+    # Inspect the dictionary created in setup_windows_environment_variables
+    import inspect
+    src = inspect.getsource(setup_windows_environment_variables)
+    assert "'OMP_HOME':" in src
+    assert "AI_WORKSPACE_DIR / \".omp\"" in src
+
+
+

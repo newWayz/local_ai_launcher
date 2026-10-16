@@ -309,6 +309,23 @@ class AgentConfigurator:
         except Exception as e:
             mnemosyne_logger.warning(f"[CONFIG] Failed to configure Orca: {e}")
 
+        # --- Oh My Pi (omp) Harness Config ---
+        try:
+            from local_ai_launcher.harnesses.omp import setup_omp_models_and_auth, setup_omp_mcp_config
+            setup_omp_models_and_auth(
+                self.config.omp_dir,
+                f"http://localhost:{LLM_BACKEND_PORT}/v1",
+                config.default_model,
+                use_omniroute=config.use_omniroute_proxy,
+                omniroute_model=config.omniroute_default_model
+            )
+            setup_omp_mcp_config(self.config.omp_dir)
+            mnemosyne_logger.info("[CONFIG] Oh My Pi configuration verified.")
+        except ImportError:
+            mnemosyne_logger.debug("[CONFIG] OMP harness module not available, skipping.")
+        except Exception as e:
+            mnemosyne_logger.warning(f"[CONFIG] Failed to configure Oh My Pi: {e}")
+
 
 class DatabaseManager:
     """Manages SQLite properties and system databases."""
@@ -446,7 +463,7 @@ class ProjectSyncService:
                 if local_exclude_path.exists():
                     existing_excludes = local_exclude_path.read_text(encoding="utf-8").splitlines()
 
-                entries_to_exclude = ["USER.md", ".t3", ".orca", ".worktreeinclude"]
+                entries_to_exclude = ["USER.md", ".t3", ".orca", ".omp", ".worktreeinclude"]
                 new_excludes = [e for e in entries_to_exclude if e not in existing_excludes]
                 if new_excludes:
                     with open(local_exclude_path, "a", encoding="utf-8") as f:

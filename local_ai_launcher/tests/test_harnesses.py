@@ -3866,6 +3866,78 @@ def test_context_preloader_omp_prefix():
     assert "Oh My Pi" in prefix_alias["messages"][0]["content"]
 
 
+def test_omp_ensure_extensions_and_skills(tmp_path, monkeypatch):
+    """Verify OmpAdapter provisions loop-recovery, cpu-tools, and auto-cycle extensions and clears legacy skills."""
+    from local_ai_launcher.harnesses.omp import OmpAdapter
+
+    omp_home = tmp_path / ".omp"
+    legacy_skills = omp_home / "skills"
+    legacy_skills.mkdir(parents=True, exist_ok=True)
+    (legacy_skills / "dummy.txt").write_text("old", encoding="utf-8")
+
+    monkeypatch.setattr(config, "omp_dir", omp_home)
+    adapter = OmpAdapter(str(tmp_path), [])
+
+    adapter.ensure_extensions_and_skills()
+
+    # Legacy skills directory should be cleaned up to prevent duplicate collisions with .agents/skills
+    assert not legacy_skills.exists()
+
+    # Extensions directory should have provisioned shims
+    ext_dir = omp_home / "agent" / "extensions"
+    assert ext_dir.exists()
+    assert (ext_dir / "loop-recovery.ts").exists()
+    assert (ext_dir / "cpu-tools.ts").exists()
+    assert (ext_dir / "auto-cycle.ts").exists()
+
+
+def test_omp_adapter_no_global_environ_leakage(tmp_path, monkeypatch):
+    """Verify OmpAdapter does not mutate process-global os.environ['PI_CODING_AGENT_DIR']."""
+    import os
+    from local_ai_launcher.harnesses.omp import OmpAdapter
+
+    original_pi_dir = "C:/aiWorkspace/.pi/agent"
+    monkeypatch.setenv("PI_CODING_AGENT_DIR", original_pi_dir)
+
+    omp_home = tmp_path / ".omp"
+    monkeypatch.setattr(config, "omp_dir", omp_home)
+    monkeypatch.setattr(config, "harness_start_dir", tmp_path / "work")
+
+    adapter = OmpAdapter(str(tmp_path), [])
+    fake_omp = tmp_path / "omp.cmd"
+    fake_omp.write_text("@echo off\necho omp 1.0\n", encoding="utf-8")
+    monkeypatch.setattr(adapter, "omp_exe", fake_omp)
+    monkeypatch.setattr(adapter, "_should_update", lambda: False)
+
+    # Run check()
+    adapter.check()
+    assert os.environ.get("PI_CODING_AGENT_DIR") == original_pi_dir
+
+    # Run start() in headless mode
+    adapter.start("http://localhost:8080/v1", "test-model", launch_tui=False)
+    assert os.environ.get("PI_CODING_AGENT_DIR") == original_pi_dir
+
+
+def test_config_omp_toml_section_flattening():
+    """Verify [omp] section in launcher.toml correctly maps extensions and skills."""
+    from local_ai_launcher.config import _flatten_overrides
+
+    raw_toml_data = {
+        "omp": {
+            "extensions": ["npm:custom-ext-1", "npm:custom-ext-2"],
+            "skills": ["custom-skill-1"]
+        }
+    }
+    flattened = _flatten_overrides(raw_toml_data)
+    assert "harness_extensions" in flattened
+    assert "omp" in flattened["harness_extensions"]
+    assert "npm:custom-ext-1" in flattened["harness_extensions"]["omp"]
+    assert "harness_skills" in flattened
+    assert "omp" in flattened["harness_skills"]
+    assert "custom-skill-1" in flattened["harness_skills"]["omp"]
+
+
+
 
 
 

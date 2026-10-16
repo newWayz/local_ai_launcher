@@ -421,6 +421,20 @@ def _flatten_overrides(overrides: dict) -> dict:
                             m_e = dict(existing_e) if isinstance(existing_e, dict) else {}
                             m_e.setdefault("pi", []).extend(sub_v if isinstance(sub_v, list) else [sub_v])
                             flat["harness_extensions"] = m_e
+                elif k in ("omp", "oh-my-pi"):
+                    for sub_k, sub_v in v.items():
+                        if sub_k in ("extensions", "extension"):
+                            existing_e = flat.get("harness_extensions", {})
+                            m_e = dict(existing_e) if isinstance(existing_e, dict) else {}
+                            m_e.setdefault("omp", []).extend(sub_v if isinstance(sub_v, list) else [sub_v])
+                            m_e.setdefault("oh-my-pi", []).extend(sub_v if isinstance(sub_v, list) else [sub_v])
+                            flat["harness_extensions"] = m_e
+                        elif sub_k in ("skills", "skill"):
+                            existing_s = flat.get("harness_skills", {})
+                            m_s = dict(existing_s) if isinstance(existing_s, dict) else {}
+                            m_s.setdefault("omp", []).extend(sub_v if isinstance(sub_v, list) else [sub_v])
+                            m_s.setdefault("oh-my-pi", []).extend(sub_v if isinstance(sub_v, list) else [sub_v])
+                            flat["harness_skills"] = m_s
                 elif k in ("deepseek", "dsh"):
                     for sub_k, sub_v in v.items():
                         if sub_k in ("donsetch", "donsetch_enabled", "enable_donsetch"):

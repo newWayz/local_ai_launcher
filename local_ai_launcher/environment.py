@@ -224,6 +224,7 @@ def setup_windows_environment_variables():
         'HOME': workspace_str,
         'HERMES_HOME': hermes_home_str,
         'PI_HOME': pi_home_str,
+        'OMP_HOME': str(AI_WORKSPACE_DIR / ".omp"),
         'PI_CODING_AGENT_DIR': str(AI_WORKSPACE_DIR / ".pi" / "agent"),
         'GOPATH': gopath_str,
         'CARGO_HOME': cargo_home_str,
@@ -476,6 +477,51 @@ def get_npm_exe():
 
 
 NPM_SHELL = (sys.platform == 'win32')
+
+
+def ensure_bun() -> Optional[str]:
+    """Ensure Bun executable is available in workspace or PATH for Bun-based agents (e.g. Oh My Pi)."""
+    node_dir = AI_WORKSPACE_DIR / "node"
+    bin_dir = AI_WORKSPACE_DIR / "bin"
+    node_modules_bin = AI_WORKSPACE_DIR / "node_modules" / ".bin"
+    for candidate in [node_dir / "bun.exe", bin_dir / "bun.exe", node_modules_bin / "bun.exe"]:
+        if candidate.exists():
+            return str(candidate)
+
+    bun_path = shutil.which("bun.exe") or shutil.which("bun")
+    if bun_path:
+        return bun_path
+
+    if sys.platform == 'win32':
+        logger.info("\nBun not found in PATH or workspace. Installing portable Bun for Windows...")
+        node_dir.mkdir(parents=True, exist_ok=True)
+        bun_url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-windows-x64.zip"
+        zip_path = AI_WORKSPACE_DIR / "bun_temp.zip"
+        temp_extract_dir = AI_WORKSPACE_DIR / "bun_extract_temp"
+        try:
+            req = urllib.request.Request(bun_url, headers={'User-Agent': 'HealthCheck'})
+            with urllib.request.urlopen(req, timeout=45) as resp, open(zip_path, 'wb') as out_file:
+                shutil.copyfileobj(resp, out_file)
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                safe_extract_zip(zip_ref, temp_extract_dir)
+
+            extracted_buns = list(temp_extract_dir.glob("**/bun.exe"))
+            if extracted_buns:
+                target_bun = node_dir / "bun.exe"
+                shutil.copy2(extracted_buns[0], target_bun)
+                if node_modules_bin.exists():
+                    shutil.copy2(extracted_buns[0], node_modules_bin / "bun.exe")
+                logger.info(f"  -> Portable Bun installed successfully in {target_bun}.")
+                return str(target_bun)
+        except Exception as e:
+            logger.warning(f"  -> Warning: Failed to download portable Bun: {e}")
+        finally:
+            shutil.rmtree(temp_extract_dir, ignore_errors=True)
+            if zip_path.exists():
+                zip_path.unlink(missing_ok=True)
+
+    return None
+
 
 
 def ensure_uv():
