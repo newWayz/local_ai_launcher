@@ -215,6 +215,14 @@ HARNESS_SPECS: Dict[str, HarnessCharacteristics] = {
         offline_support="always",
         description="llama-server native web UI."
     ),
+    "aside": HarnessCharacteristics(
+        canonical_name="aside",
+        aliases=("aside", "aside-browser", "aside-cli"),
+        is_meta_harness=False,
+        is_cli=True,
+        offline_support="always",
+        description="Aside AI browser agent and CLI integration."
+    ),
 }
 
 # Fast alias-to-canonical lookup table

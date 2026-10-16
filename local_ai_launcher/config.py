@@ -472,6 +472,20 @@ def _flatten_overrides(overrides: dict) -> dict:
                             flat["rea_schema_profile"] = str(sub_v).strip().lower()
                         else:
                             flat[f"rea_{sub_k}"] = sub_v
+                elif k in ("aside", "aside_browser", "aside_cli"):
+                    for sub_k, sub_v in v.items():
+                        if sub_k in ("enable", "enabled"):
+                            flat["aside_browser_enabled"] = bool(sub_v)
+                        elif sub_k in ("model", "model_name"):
+                            flat["aside_browser_model"] = str(sub_v)
+                        elif sub_k in ("bin", "binary", "path"):
+                            flat["aside_browser_bin"] = Path(sub_v) if sub_v else None
+                        elif sub_k in ("auto_sync", "sync"):
+                            flat["aside_browser_auto_sync"] = bool(sub_v)
+                        elif sub_k in ("headless", "run_headless"):
+                            flat["aside_browser_headless"] = bool(sub_v)
+                        else:
+                            flat[f"aside_browser_{sub_k}"] = sub_v
                 elif k in ("git", "git_client"):
                     for sub_k, sub_v in v.items():
                         if sub_k in ("auto_update", "autoupdate", "enable", "enabled"):
@@ -523,6 +537,16 @@ def _flatten_overrides(overrides: dict) -> dict:
                 flat["claude_thinking_mode_explicit"] = True
             elif k in ("claude_offline_inject_contract", "offline_inject_contract"):
                 flat["claude_offline_inject_contract"] = bool(v)
+            elif k in ("aside_browser_enabled", "enable_aside_browser", "aside_enabled"):
+                flat["aside_browser_enabled"] = bool(v)
+            elif k in ("aside_browser_model", "aside_model"):
+                flat["aside_browser_model"] = str(v)
+            elif k in ("aside_browser_bin", "aside_bin"):
+                flat["aside_browser_bin"] = Path(v) if v else None
+            elif k in ("aside_browser_auto_sync", "aside_auto_sync"):
+                flat["aside_browser_auto_sync"] = bool(v)
+            elif k in ("aside_browser_headless", "aside_headless"):
+                flat["aside_browser_headless"] = bool(v)
             else:
                 flat[k] = v
     return flat
@@ -1127,6 +1151,13 @@ class LauncherConfig:
         port = getattr(self, "searxng_port", 8088)
         return f"http://{host}:{port}"
 
+    # Aside Browser Interactive Automation Configuration
+    aside_browser_enabled: bool = True
+    aside_browser_model: str = "local-engine"
+    aside_browser_bin: Optional[Path] = None
+    aside_browser_auto_sync: bool = True
+    aside_browser_headless: bool = False
+
     config_file: Optional[Path] = None
 
     def __post_init__(self):
@@ -1441,6 +1472,9 @@ class LauncherConfig:
             "use_litellm_proxy",
             "claude_disallow_cloud_search",
             "claude_disallow_cloud_search_online",
+            "aside_browser_enabled",
+            "aside_browser_auto_sync",
+            "aside_browser_headless",
         }
         if name in boolean_flags:
             if isinstance(value, (int, float)):

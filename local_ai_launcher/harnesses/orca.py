@@ -129,6 +129,15 @@ def setup_orca_config(orca_home: Path, llm_base_url: str, active_model: Optional
             "HF_HUB_CACHE": str(AI_WORKSPACE_DIR / "models" / "huggingface"),
             "npm_config_allow_git": "all",
         }
+        if getattr(config, "aside_browser_enabled", True):
+            try:
+                from local_ai_launcher.paths import get_aside_binary_path
+                aside_bin = getattr(config, "aside_browser_bin", None) or get_aside_binary_path()
+                if aside_bin and Path(aside_bin).is_file():
+                    common_agent_env["ASIDE_CLI_DIR"] = str(Path(aside_bin).parent)
+                    common_agent_env["ASIDE_BINARY"] = str(aside_bin)
+            except Exception:
+                pass
         for agent_key in ["pi", "trae", "openlumara", "hermes", "antigravity", "deepseek", "goose", "t3", "t3code"]:
             agent_dict = default_env.setdefault(agent_key, {})
             for k, v in common_agent_env.items():
@@ -343,6 +352,14 @@ class OrcaAdapter(HarnessAdapter):
         # Pre-flight setup: worktree preparation and env profile
         setup_orca_config(self.orca_home, llm_base_url, active_model)
         
+        if getattr(config, "aside_browser_enabled", True) and getattr(config, "aside_browser_auto_sync", True):
+            try:
+                from local_ai_launcher.backends.aside import setup_aside_local_engine, is_aside_installed
+                if is_aside_installed():
+                    setup_aside_local_engine(llm_base_url, active_model=model_name)
+            except Exception as e:
+                logger.warning(f"Notice: Failed to configure Aside browser for Orca: {e}")
+
         actual_llm_url = llm_base_url
         if getattr(config, 'orca_voice_to_text', False):
             mcp_port = getattr(config, 'mcp_server_port', 9932)

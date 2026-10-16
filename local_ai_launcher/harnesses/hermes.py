@@ -499,6 +499,15 @@ class HermesAdapter(HarnessAdapter):
             except Exception as e:
                 logger.info(f"Notice: Direct config update failed: {e}")
 
+        target_model_name = resolve_model_name(active_model)
+        if getattr(config, "aside_browser_enabled", True) and getattr(config, "aside_browser_auto_sync", True):
+            try:
+                from local_ai_launcher.backends.aside import setup_aside_local_engine, is_aside_installed
+                if is_aside_installed():
+                    setup_aside_local_engine(llm_base_url, active_model=target_model_name)
+            except Exception as e:
+                logger.warning(f"Notice: Failed to configure Aside browser for Hermes: {e}")
+
         if auxiliary_only:
             from local_ai_launcher.context_preloader import preload_harness_context
             preload_harness_context(llm_base_url, model_name, harness_name="hermes")

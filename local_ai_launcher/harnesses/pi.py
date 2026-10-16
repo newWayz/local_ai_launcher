@@ -239,6 +239,19 @@ def setup_pi_mcp_config(pi_home: Path):
     else:
         mcp_servers.pop("rea", None)
 
+    if getattr(config, "aside_browser_enabled", True):
+        try:
+            from local_ai_launcher.backends.aside import get_aside_mcp_server_config
+            aside_cfg = get_aside_mcp_server_config()
+            if aside_cfg:
+                mcp_servers["aside"] = aside_cfg
+            else:
+                mcp_servers.pop("aside", None)
+        except Exception as e:
+            logger.warning(f"Notice: Failed to configure Aside MCP for Pi: {e}")
+    else:
+        mcp_servers.pop("aside", None)
+
     try:
         from local_ai_launcher.paths import atomic_write_json
         atomic_write_json(mcp_file, current_data)
@@ -671,6 +684,13 @@ class PiAdapter(HarnessAdapter):
         setup_pi_web_search_config(self.pi_home)
         setup_pi_mcp_config(self.pi_home)
         model_name = resolve_model_name(active_model)
+        if getattr(config, "aside_browser_enabled", True) and getattr(config, "aside_browser_auto_sync", True):
+            try:
+                from local_ai_launcher.backends.aside import setup_aside_local_engine, is_aside_installed
+                if is_aside_installed():
+                    setup_aside_local_engine(llm_base_url, active_model=model_name)
+            except Exception as e:
+                logger.warning(f"  -> Warning: Could not configure Aside browser for local engine: {e}")
 
         # Pre-evaluate Pi agent system prompt and tool definitions into KV cache for sub-second TTFT
         from local_ai_launcher.context_preloader import preload_harness_context

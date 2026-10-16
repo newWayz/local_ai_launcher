@@ -54,6 +54,7 @@ from local_ai_launcher.harnesses.claude import (
     setup_claude_cli_mcp_config,
     setup_claude_desktop_config,
 )
+from local_ai_launcher.harnesses.aside import AsideAdapter
 
 HARNESS_REGISTRY = {
     "hermes": HermesAdapter,
@@ -85,6 +86,9 @@ HARNESS_REGISTRY = {
     "claude-desktop-gateway": ClaudeDesktopGatewayAdapter,
     "claude-desktop-local": ClaudeDesktopGatewayAdapter,
     "claudedesktop": ClaudeDesktopAdapter,
+    "aside": AsideAdapter,
+    "aside-browser": AsideAdapter,
+    "aside-cli": AsideAdapter,
 }
 
 

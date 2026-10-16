@@ -55,6 +55,19 @@ def build_ps_env(env_vars: dict, workdir: Optional[Path] = None, harness_name: O
             env_vars['SEARXNG_URL'] = searxng_url
         if 'SEARXNG_BASE_URL' not in env_vars:
             env_vars['SEARXNG_BASE_URL'] = searxng_url
+
+    # Inject Aside browser CLI path into environment and PATH for interactive automation
+    if getattr(config, 'aside_browser_enabled', True):
+        try:
+            from local_ai_launcher.paths import get_aside_binary_path
+            aside_bin = getattr(config, 'aside_browser_bin', None) or get_aside_binary_path()
+            if aside_bin and Path(aside_bin).is_file():
+                aside_dir = str(Path(aside_bin).parent)
+                env_vars['ASIDE_CLI_DIR'] = aside_dir
+                env_vars['ASIDE_BINARY'] = str(aside_bin)
+                parts.append(f"if ($env:PATH -notlike '*{aside_dir}*') {{ $env:PATH = '{aside_dir};' + $env:PATH }};")
+        except Exception:
+            pass
         
     for k, v in env_vars.items():
         escaped_v = str(v).replace("'", "''")

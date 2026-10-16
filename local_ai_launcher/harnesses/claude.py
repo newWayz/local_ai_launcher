@@ -880,6 +880,14 @@ class ClaudeAdapter(HarnessAdapter):
                 except Exception:
                     pass
 
+            if getattr(config, "aside_browser_enabled", True) and getattr(config, "aside_browser_auto_sync", True):
+                try:
+                    from local_ai_launcher.backends.aside import setup_aside_local_engine, is_aside_installed
+                    if is_aside_installed():
+                        setup_aside_local_engine(target_base_url, active_model=active_model)
+                except Exception as e:
+                    logger.warning(f"Notice: Failed to configure Aside browser for local Claude: {e}")
+
             env_vars.update({
                 'CLAUDE_CONFIG_DIR': str(local_profile_dir),
                 'ANTHROPIC_BASE_URL': anthropic_base,
@@ -977,6 +985,13 @@ class ClaudeAdapter(HarnessAdapter):
                     )
             except Exception as e:
                 logger.debug(f"Claude CLI MCP setup notice: {e}")
+
+            if getattr(config, "aside_browser_enabled", True) and getattr(config, "aside_browser_auto_sync", True):
+                try:
+                    from local_ai_launcher.backends.aside import setup_aside_local_engine
+                    setup_aside_local_engine(effective_mcp_url, active_model=active_model)
+                except Exception as e:
+                    logger.warning(f"Notice: Failed to configure Aside browser for official Claude: {e}")
 
             tab_title = "Claude Code [OFFICIAL CLOUD]"
             banner_cmd = (
@@ -1184,6 +1199,19 @@ def setup_claude_cli_mcp_config(
     else:
         mcp_servers.pop("rea", None)
 
+    if getattr(config, "aside_browser_enabled", True):
+        try:
+            from local_ai_launcher.backends.aside import get_aside_mcp_server_config
+            aside_cfg = get_aside_mcp_server_config()
+            if aside_cfg:
+                mcp_servers["aside"] = aside_cfg
+            else:
+                mcp_servers.pop("aside", None)
+        except Exception as e:
+            logger.warning(f"Notice: Failed to configure Aside MCP for Claude CLI: {e}")
+    else:
+        mcp_servers.pop("aside", None)
+
     try:
         mcp_json_path.write_text(json.dumps(current_data, indent=2), encoding="utf-8")
     except Exception as e:
@@ -1208,7 +1236,7 @@ def setup_claude_cli_mcp_config(
         if not isinstance(approved, list):
             approved = []
             settings_data["enabledMcpjsonServers"] = approved
-        for s_name in ("local-model", "litellm", "searxng", "rea"):
+        for s_name in ("local-model", "litellm", "searxng", "rea", "aside"):
             if s_name in mcp_servers and s_name not in approved:
                 approved.append(s_name)
             elif s_name not in mcp_servers and s_name in approved:
@@ -1686,6 +1714,19 @@ def setup_claude_desktop_config(
     else:
         mcp_servers.pop("rea", None)
 
+    if getattr(config, "aside_browser_enabled", True) and mode != "off":
+        try:
+            from local_ai_launcher.backends.aside import get_aside_mcp_server_config
+            aside_cfg = get_aside_mcp_server_config()
+            if aside_cfg:
+                mcp_servers["aside"] = aside_cfg
+            else:
+                mcp_servers.pop("aside", None)
+        except Exception as e:
+            logger.warning(f"Notice: Failed to configure Aside MCP for Claude Desktop: {e}")
+    else:
+        mcp_servers.pop("aside", None)
+
     tmp_path = target_path.with_suffix(".json.tmp")
     try:
         with open(tmp_path, "w", encoding="utf-8") as f:
@@ -2001,6 +2042,13 @@ class ClaudeDesktopAdapter(HarnessAdapter):
                 )
         except Exception as e:
             logger.error(f"Failed to configure Claude Desktop: {e}")
+
+        if getattr(config, "aside_browser_enabled", True) and getattr(config, "aside_browser_auto_sync", True):
+            try:
+                from local_ai_launcher.backends.aside import setup_aside_local_engine
+                setup_aside_local_engine(effective_base_url, active_model=active_model)
+            except Exception as e:
+                logger.warning(f"Notice: Failed to configure Aside browser for Claude Desktop: {e}")
 
         model_name = resolve_model_name(active_model)
         try:

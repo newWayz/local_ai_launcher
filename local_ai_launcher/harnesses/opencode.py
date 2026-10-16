@@ -113,6 +113,14 @@ class OpenCodeAdapter(HarnessAdapter):
     def start(self, llm_base_url, active_model=None):
         model_name = resolve_model_name(active_model)
 
+        if getattr(config, "aside_browser_enabled", True) and getattr(config, "aside_browser_auto_sync", True):
+            try:
+                from local_ai_launcher.backends.aside import setup_aside_local_engine, is_aside_installed
+                if is_aside_installed():
+                    setup_aside_local_engine(llm_base_url, active_model=model_name)
+            except Exception as e:
+                logger.warning(f"Notice: Failed to configure Aside browser for OpenCode: {e}")
+
         opencode_args = f"--model {model_name}"
         opencode_bin = f"& '{self.opencode_exe}'" if isinstance(self.opencode_exe, Path) and self.opencode_exe.exists() else "opencode"
         opencode_cmd = f"{opencode_bin} {opencode_args}"

@@ -290,6 +290,14 @@ class DeepseekAdapter(HarnessAdapter):
         except Exception as e:
             logger.warning(f"Notice: Could not sync DSH settings.yaml: {e}")
 
+        if getattr(config, "aside_browser_enabled", True) and getattr(config, "aside_browser_auto_sync", True):
+            try:
+                from local_ai_launcher.backends.aside import setup_aside_local_engine, is_aside_installed
+                if is_aside_installed():
+                    setup_aside_local_engine(llm_base_url, active_model=model_name)
+            except Exception as e:
+                logger.warning(f"Notice: Failed to configure Aside browser for DeepSeek: {e}")
+
         if not self.deepseek_exe or not self.deepseek_exe.exists():
             self.deepseek_exe = self._resolve_executable()
         deepseek_args = f"web --patch '{patch_file}'"

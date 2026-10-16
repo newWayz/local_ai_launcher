@@ -84,6 +84,19 @@ def setup_antigravity_mcp_config(gemini_dir: Optional[Path] = None) -> Path:
     else:
         mcp_servers.pop("rea", None)
 
+    if getattr(config, "aside_browser_enabled", True):
+        try:
+            from local_ai_launcher.backends.aside import get_aside_mcp_server_config
+            aside_cfg = get_aside_mcp_server_config()
+            if aside_cfg:
+                mcp_servers["aside"] = aside_cfg
+            else:
+                mcp_servers.pop("aside", None)
+        except Exception as e:
+            logger.warning(f"Notice: Failed to configure Aside MCP for Antigravity: {e}")
+    else:
+        mcp_servers.pop("aside", None)
+
     try:
         from local_ai_launcher.paths import atomic_write_json
         atomic_write_json(mcp_config_path, mcp_config)
@@ -209,6 +222,13 @@ class AntigravityAdapter(HarnessAdapter):
     def start(self, llm_base_url, active_model=None):
         logger.info("Starting Antigravity CLI (agy)...")
         self._configure_settings_and_rules()
+        if getattr(config, "aside_browser_enabled", True) and getattr(config, "aside_browser_auto_sync", True):
+            try:
+                from local_ai_launcher.backends.aside import setup_aside_local_engine, is_aside_installed
+                if is_aside_installed():
+                    setup_aside_local_engine(llm_base_url, active_model=active_model)
+            except Exception as e:
+                logger.warning(f"Notice: Failed to configure Aside browser for Antigravity: {e}")
         env_setup = build_ps_env({
             'GEMINI_DIR': self.gemini_dir,
         })
@@ -266,6 +286,12 @@ class BaseAntigravityAdapter(HarnessAdapter):
         if user_home.exists():
             ensure_directory_junction(user_home / ".gemini" / "config", AI_WORKSPACE_DIR / ".gemini" / "config")
         setup_antigravity_mcp_config()
+        if getattr(config, "aside_browser_enabled", True) and getattr(config, "aside_browser_auto_sync", True):
+            try:
+                from local_ai_launcher.backends.aside import setup_aside_local_engine
+                setup_aside_local_engine(f"http://127.0.0.1:{LLM_BACKEND_PORT}/v1", active_model=config.default_model)
+            except Exception as e:
+                logger.warning(f"Notice: Failed to configure Aside browser for Antigravity: {e}")
 
 class AgyIdeAdapter(BaseAntigravityAdapter):
     def __init__(self, root_dir, processes):

@@ -318,6 +318,16 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
         {"name": "npm_config_allow_git", "value": "all"},
     ]
 
+    if getattr(config, "aside_browser_enabled", True):
+        try:
+            from local_ai_launcher.paths import get_aside_binary_path
+            aside_bin = getattr(config, "aside_browser_bin", None) or get_aside_binary_path()
+            if aside_bin and Path(aside_bin).is_file():
+                local_env.append({"name": "ASIDE_CLI_DIR", "value": str(Path(aside_bin).parent)})
+                local_env.append({"name": "ASIDE_BINARY", "value": str(aside_bin)})
+        except Exception:
+            pass
+
     pi_env = list(local_env) + [
         {"name": "OPENCODE_CONFIG", "value": pi_config_file.as_posix()},
         {"name": "XDG_DATA_HOME", "value": pi_data_dir.as_posix()},
@@ -724,6 +734,14 @@ class T3Adapter(HarnessAdapter):
         # Pre-configure settings and ensure workspace directories exist
         setup_t3_config(self.t3_home, llm_base_url, active_model)
 
+        if getattr(config, "aside_browser_enabled", True) and getattr(config, "aside_browser_auto_sync", True):
+            try:
+                from local_ai_launcher.backends.aside import setup_aside_local_engine, is_aside_installed
+                if is_aside_installed():
+                    setup_aside_local_engine(llm_base_url, active_model=model_name)
+            except Exception as e:
+                logger.warning(f"Notice: Failed to configure Aside browser for T3: {e}")
+
         # Pre-evaluate OpenCode agent system prompt and tool definitions into KV cache for sub-second TTFT
         from local_ai_launcher.context_preloader import preload_harness_context
         preload_harness_context(llm_base_url, model_name, harness_name="t3")
@@ -734,6 +752,14 @@ class T3Adapter(HarnessAdapter):
             str(AI_WORKSPACE_DIR / ".hermes" / "bin"),
             str(AI_WORKSPACE_DIR / "node_modules" / ".bin"),
         ]
+        if getattr(config, "aside_browser_enabled", True):
+            try:
+                from local_ai_launcher.paths import get_aside_binary_path
+                aside_bin = getattr(config, "aside_browser_bin", None) or get_aside_binary_path()
+                if aside_bin and Path(aside_bin).is_file():
+                    extra_bin_dirs.append(str(Path(aside_bin).parent))
+            except Exception:
+                pass
 
         if self.desktop_exe and self.desktop_exe.exists():
             # STANDALONE DESKTOP GUI MODE:

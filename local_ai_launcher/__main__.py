@@ -72,6 +72,8 @@ def parse_cli_args():
     parser.add_argument("--claude-desktop-mode", choices=["mcp", "gateway", "disabled", "off"], help="Claude Desktop mode: 'mcp' (official GUI + local MCP bridge) or 'gateway' (developer mode direct local)")
     parser.add_argument("--local-claude-native-engine", type=str, help="Specific engine to target for local Claude native routing (e.g. 'strata')")
     parser.add_argument("--local-claude-native-engines", nargs="+", help="Engines supporting local Claude native Anthropic messages API")
+    parser.add_argument("--aside-browser", dest="aside_browser", action="store_true", default=None, help="Enable Aside browser MCP and CLI integration")
+    parser.add_argument("--no-aside-browser", dest="no_aside_browser", action="store_true", help="Disable Aside browser MCP and CLI integration")
     
     args, _ = parser.parse_known_args()
     
@@ -136,6 +138,10 @@ def parse_cli_args():
     elif getattr(args, 'no_update_git', False):
         config.git_update_behavior = 'never_update'
         config.git_auto_update = False
+    if getattr(args, "aside_browser", None) is True:
+        config.aside_browser_enabled = True
+    elif getattr(args, "no_aside_browser", False):
+        config.aside_browser_enabled = False
 
     if getattr(args, 'sync_skills', False) or getattr(args, 'update_skills', False):
         from local_ai_launcher.skills_manager import SkillManager

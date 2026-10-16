@@ -130,6 +130,63 @@ def get_donsetch_binary_path() -> Optional[Path]:
     return None
 
 
+def get_aside_binary_path() -> Optional[Path]:
+    """Portably locate the Aside CLI binary across user AppData, Program Files, or PATH."""
+    bin_name = "aside.exe" if sys.platform == 'win32' else "aside"
+    candidates = []
+    if sys.platform == 'win32':
+        local_appdata = os.environ.get("LOCALAPPDATA")
+        if local_appdata:
+            lad = Path(local_appdata)
+            candidates.extend([
+                lad / "Aside" / "CLI" / "current" / bin_name,
+                lad / "Programs" / "Aside" / "bin" / bin_name,
+                lad / "Aside" / "bin" / bin_name,
+            ])
+        program_files = os.environ.get("ProgramFiles")
+        if program_files:
+            candidates.append(Path(program_files) / "Aside" / "CLI" / bin_name)
+        program_files_x86 = os.environ.get("ProgramFiles(x86)")
+        if program_files_x86:
+            candidates.append(Path(program_files_x86) / "Aside" / "CLI" / bin_name)
+    try:
+        candidates.append(Path.home() / ".aside" / "bin" / bin_name)
+        candidates.append(Path.home() / ".aside" / "runtime" / "bin" / bin_name)
+    except Exception:
+        pass
+
+    for c in candidates:
+        if c.exists() and c.is_file():
+            return c
+    which_bin = shutil.which(bin_name)
+    if which_bin:
+        return Path(which_bin)
+    return None
+
+
+def get_aside_app_path() -> Optional[Path]:
+    """Locate the Aside Browser desktop application executable."""
+    exe_name = "Aside.exe" if sys.platform == 'win32' else "Aside"
+    candidates = [
+        Path("C:/Program Files/Aside/Application") / exe_name,
+        Path("C:/Program Files (x86)/Aside/Application") / exe_name,
+    ]
+    local_appdata = os.environ.get("LOCALAPPDATA")
+    if local_appdata:
+        lad = Path(local_appdata)
+        candidates.extend([
+            lad / "Programs" / "Aside" / exe_name,
+            lad / "Aside" / "Application" / exe_name,
+        ])
+    for c in candidates:
+        if c.exists() and c.is_file():
+            return c
+    which_app = shutil.which("aside-browser") or shutil.which(exe_name)
+    if which_app:
+        return Path(which_app)
+    return None
+
+
 __all__ = [
     "AI_WORKSPACE_DIR",
     "LOCAL_AI_LAUNCHER_DIR",
@@ -174,4 +231,6 @@ __all__ = [
     "atomic_write_json",
     "atomic_write_text",
     "get_donsetch_binary_path",
+    "get_aside_binary_path",
+    "get_aside_app_path",
 ]
