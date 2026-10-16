@@ -895,6 +895,8 @@ def start_in_wt_tab(command_str, cwd=None, title=None):
             title = "Antigravity"
         elif "opencode" in cmd_lower:
             title = "OpenCode"
+        elif "omp" in cmd_lower or "oh-my-pi" in cmd_lower:
+            title = "Oh My Pi"
         elif "pi " in cmd_lower or "pi_cmd" in cmd_lower:
             title = "Pi"
         elif "pie" in cmd_lower:

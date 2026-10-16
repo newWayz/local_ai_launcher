@@ -700,6 +700,22 @@ def build_harness_prefix(harness_name: str, model_name: str) -> Dict[str, Any]:
             "tools": PI_TOOLS
         }
 
+    elif name in ("omp", "oh-my-pi", "ohmypi"):
+        agents_context = _load_agents_instructions()
+        system_parts = [
+            "You are Oh My Pi (omp), an advanced terminal AI coding agent and software architect.",
+            "Always inspect and verify code changes using tests before concluding tasks.",
+        ]
+        if agents_context:
+            system_parts.append(f"\nWorkspace Directives:\n{agents_context}")
+        elif user_context:
+            system_parts.append(f"\nUser Directives:\n{user_context}")
+        system_content = "\n\n".join(system_parts)
+        return {
+            "messages": [{"role": "system", "content": system_content}],
+            "tools": PI_TOOLS
+        }
+
     elif name in ("hermes", "hermes-agent"):
         system_content = _load_canonical_hermes_prompt(model_name)
         return {

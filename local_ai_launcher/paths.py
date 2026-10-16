@@ -16,6 +16,7 @@ CONFIG_DIR = AI_WORKSPACE_DIR / "config"
 PROJECTS_DIR = AI_WORKSPACE_DIR / "projects"
 HERMES_DIR = AI_WORKSPACE_DIR / ".hermes"
 PI_DIR = AI_WORKSPACE_DIR / ".pi"
+OMP_DIR = AI_WORKSPACE_DIR / ".omp"
 DSH_DIR = AI_WORKSPACE_DIR / ".dsh"
 T3_DIR = AI_WORKSPACE_DIR / ".t3"
 ORCA_DIR = AI_WORKSPACE_DIR / ".orca"
@@ -204,6 +205,7 @@ __all__ = [
     "PROJECTS_DIR",
     "HERMES_DIR",
     "PI_DIR",
+    "OMP_DIR",
     "DSH_DIR",
     "T3_DIR",
     "ORCA_DIR",

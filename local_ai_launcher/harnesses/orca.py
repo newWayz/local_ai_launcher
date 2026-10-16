@@ -138,10 +138,13 @@ def setup_orca_config(orca_home: Path, llm_base_url: str, active_model: Optional
                     common_agent_env["ASIDE_BINARY"] = str(aside_bin)
             except Exception:
                 pass
-        for agent_key in ["pi", "trae", "openlumara", "hermes", "antigravity", "deepseek", "goose", "t3", "t3code"]:
+        for agent_key in ["pi", "omp", "trae", "openlumara", "hermes", "antigravity", "deepseek", "goose", "t3", "t3code"]:
             agent_dict = default_env.setdefault(agent_key, {})
             for k, v in common_agent_env.items():
                 agent_dict[k] = v
+        if "omp" in default_env:
+            default_env["omp"]["OMP_HOME"] = str(AI_WORKSPACE_DIR / ".omp")
+            default_env["omp"]["PI_CODING_AGENT_DIR"] = str(AI_WORKSPACE_DIR / ".omp" / "agent")
 
         # Claude Code CLI: Local vs Official isolation in Orca ADE
         from local_ai_launcher.harnesses.claude import (
@@ -185,6 +188,7 @@ def setup_orca_config(orca_home: Path, llm_base_url: str, active_model: Optional
         orca_agent_map = {
             "openlumara": "trae",
             "pi": "pi",
+            "omp": "omp",
             "hermes": "hermes",
             "deepseek": "deepseek",
             "claude": "claude-local" if "claude-local" in default_env else "claude",
@@ -229,6 +233,14 @@ def setup_orca_config(orca_home: Path, llm_base_url: str, active_model: Optional
         logger.info("  -> Synced workspace Pi models and auth for Orca ADE integration.")
     except Exception as pi_err:
         logger.warning(f"  -> Warning: Pi models and auth configuration notice for Orca: {pi_err}")
+
+    # 2c. Ensure Oh My Pi (omp) harness configuration in workspace is active for Orca's OMP agent
+    try:
+        from local_ai_launcher.harnesses.omp import setup_omp_models_and_auth
+        setup_omp_models_and_auth(getattr(config, "omp_dir", AI_WORKSPACE_DIR / ".omp"), llm_base_url, active_model=model_name, use_omniroute=config.use_omniroute_proxy, omniroute_model=config.omniroute_default_model)
+        logger.info("  -> Synced workspace OMP models and auth for Orca ADE integration.")
+    except Exception as omp_err:
+        logger.warning(f"  -> Warning: OMP models and auth configuration notice for Orca: {omp_err}")
 
     # 3. Worktree File Propagation (.worktreeinclude)
     # Stably AI Orca copies/symlinks files specified in .worktreeinclude to child agent worktrees

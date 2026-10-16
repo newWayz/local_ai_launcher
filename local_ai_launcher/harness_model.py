@@ -127,6 +127,14 @@ HARNESS_SPECS: Dict[str, HarnessCharacteristics] = {
         offline_support="always",
         description="Pi coding agent terminal harness (autonomous software architect)."
     ),
+    "omp": HarnessCharacteristics(
+        canonical_name="omp",
+        aliases=("omp", "oh-my-pi", "ohmypi"),
+        is_meta_harness=False,
+        is_cli=True,
+        offline_support="always",
+        description="Oh My Pi (omp) terminal coding agent with IDE integrations and multi-provider support."
+    ),
     "hermes": HarnessCharacteristics(
         canonical_name="hermes",
         aliases=("hermes", "hermes-agent"),

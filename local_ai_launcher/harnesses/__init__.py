@@ -36,6 +36,7 @@ from local_ai_launcher.process import *
 
 from local_ai_launcher.harnesses.hermes import HermesAdapter
 from local_ai_launcher.harnesses.pi import PiAdapter, setup_pi_mcp_config
+from local_ai_launcher.harnesses.omp import OmpAdapter, setup_omp_models_and_auth
 from local_ai_launcher.harnesses.pie import PieAdapter
 from local_ai_launcher.harnesses.opencode import OpenCodeAdapter
 from local_ai_launcher.harnesses.antigravity import AntigravityAdapter, AgyIdeAdapter, AgyDesktopAdapter, setup_antigravity_mcp_config
@@ -60,6 +61,9 @@ HARNESS_REGISTRY = {
     "hermes": HermesAdapter,
     "pi": PiAdapter,
     "pie": PieAdapter,
+    "omp": OmpAdapter,
+    "oh-my-pi": OmpAdapter,
+    "ohmypi": OmpAdapter,
     "opencode": OpenCodeAdapter,
     "agy": AntigravityAdapter,
     "agy-ide": AgyIdeAdapter,

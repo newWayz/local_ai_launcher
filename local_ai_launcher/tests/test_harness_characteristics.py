@@ -30,7 +30,7 @@ from local_ai_launcher.process import preload_default_model_async
 
 def test_harness_specs_registry_integrity():
     """Verify all canonical harnesses are registered with required traits."""
-    for required in ("pi", "hermes", "deepseek", "claude", "claude-desktop", "opencode", "openlumara", "orca", "t3", "antigravity"):
+    for required in ("pi", "omp", "hermes", "deepseek", "claude", "claude-desktop", "opencode", "openlumara", "orca", "t3", "antigravity"):
         spec = get_harness_characteristics(required)
         assert spec is not None, f"Harness '{required}' must be registered"
         assert spec.canonical_name
@@ -46,6 +46,10 @@ def test_harness_aliases_resolution():
     assert get_harness_characteristics("claude-desktop").canonical_name == "claude-desktop"
     assert get_harness_characteristics("claudecode").canonical_name == "claude"
     assert get_harness_characteristics("pie").canonical_name == "pi"
+    assert get_harness_characteristics("omp").canonical_name == "omp"
+    assert get_harness_characteristics("oh-my-pi").canonical_name == "omp"
+    assert get_harness_characteristics("ohmypi").canonical_name == "omp"
+    assert get_harness_characteristics("omp").canonical_name != "pi"
     assert get_harness_characteristics("lumara").canonical_name == "openlumara"
     assert get_harness_characteristics("agy").canonical_name == "antigravity"
     assert get_harness_characteristics("agy-desktop").canonical_name == "antigravity"
@@ -59,6 +63,7 @@ def test_meta_harness_identification():
 
     # Non-meta harnesses
     assert is_meta_harness("pi") is False
+    assert is_meta_harness("omp") is False
     assert is_meta_harness("hermes") is False
     assert is_meta_harness("deepseek") is False
     assert is_meta_harness("dsh") is False
@@ -72,6 +77,7 @@ def test_cli_harness_identification():
     """Verify CLI/TUI agents vs full GUI desktop apps."""
     # CLI agents
     assert is_cli_harness("pi") is True
+    assert is_cli_harness("omp") is True
     assert is_cli_harness("hermes") is True
     assert is_cli_harness("deepseek") is True
     assert is_cli_harness("dsh") is True
@@ -89,9 +95,9 @@ def test_cli_harness_identification():
 
 
 def test_offline_capability_across_engines():
-    """Verify offline capability rules: Pi/Hermes/DSH are always offline, Claude requires Strata."""
+    """Verify offline capability rules: Pi/Hermes/DSH/OMP are always offline, Claude requires Strata."""
     # Always offline capable
-    for h in ("pi", "hermes", "deepseek", "dsh", "opencode", "orca", "t3"):
+    for h in ("pi", "omp", "hermes", "deepseek", "dsh", "opencode", "orca", "t3"):
         assert is_offline_capable(h, model_name="any-model") is True
 
     # Cloud only
@@ -539,6 +545,29 @@ def test_meta_harnesses_expose_online_claude_when_non_strata_or_official(tmp_pat
     claude_inst_env_b = {item["name"]: item["value"] for item in t3_settings_b["providerInstances"]["claude"]["environment"]}
     assert claude_inst_env_b.get("CLAUDE_CONFIG_DIR") == ""
     assert "ANTHROPIC_BASE_URL" not in claude_inst_env_b
+
+
+def test_omp_harness_characteristics_distinct_from_pi():
+    """Verify Oh My Pi (omp) is registered, offline-capable, and strictly separate from Pi."""
+    omp_spec = get_harness_characteristics("omp")
+    pi_spec = get_harness_characteristics("pi")
+    assert omp_spec is not None
+    assert pi_spec is not None
+    assert omp_spec.canonical_name == "omp"
+    assert pi_spec.canonical_name == "pi"
+    assert omp_spec.canonical_name != pi_spec.canonical_name
+    assert is_cli_harness("omp") is True
+    assert is_meta_harness("omp") is False
+    assert is_offline_capable("omp") is True
+
+    # Priority resolution with omp
+    assert resolve_server_preloaded_harness(["orca", "omp"]) == "omp"
+    assert resolve_meta_harness_inner_cli_harness(["orca", "omp"]) == "omp"
+    assert resolve_server_preloaded_harness(["t3", "omp", "pi"]) == "omp"
+    assert resolve_meta_harness_inner_cli_harness(["t3", "omp", "pi"]) == "omp"
+    assert resolve_server_preloaded_harness(["t3", "pi", "omp"]) == "pi"
+    assert resolve_meta_harness_inner_cli_harness(["t3", "pi", "omp"]) == "pi"
+
 
 
 

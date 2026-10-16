@@ -2,6 +2,7 @@
   "dependencies": {
     "@anthropic-ai/claude-code": "^2.1.300",
     "@deepseek-ai/dsh": "^0.2.0-rc.2",
+    "@oh-my-pi/pi-coding-agent": "^18.11.3",
     "agent-browser": "^0.33.2",
     "cowsay": "^1.6.0",
     "deepseek": "^0.0.2",

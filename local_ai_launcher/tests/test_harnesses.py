@@ -3721,6 +3721,152 @@ def test_gateway_contract_injection_tier_d_and_thinking_translation(monkeypatch)
     assert "chat_template_kwargs" not in conv_gpt
 
 
+def test_harness_registry_contains_omp():
+    """Verify omp and its aliases are registered in HARNESS_REGISTRY and distinct from Pi."""
+    from local_ai_launcher.harnesses.omp import OmpAdapter
+    from local_ai_launcher.harnesses.pi import PiAdapter
+    assert "omp" in HARNESS_REGISTRY
+    assert HARNESS_REGISTRY["omp"] is OmpAdapter
+    assert "oh-my-pi" in HARNESS_REGISTRY
+    assert HARNESS_REGISTRY["oh-my-pi"] is OmpAdapter
+    assert "ohmypi" in HARNESS_REGISTRY
+    assert HARNESS_REGISTRY["ohmypi"] is OmpAdapter
+    assert HARNESS_REGISTRY["omp"] is not PiAdapter
+
+
+def test_config_contains_omp_defaults():
+    """Verify LauncherConfig contains default behaviors and directories for omp."""
+    cfg = LauncherConfig()
+    assert "omp" in cfg.harness_install_behaviors
+    assert "omp" in cfg.harness_update_behaviors
+    assert "omp" in cfg.harness_extensions
+    assert "omp" in cfg.harness_skills
+    assert hasattr(cfg, "omp_dir")
+    assert hasattr(config, "omp_dir")
+    assert cfg.omp_dir != cfg.pi_dir
+
+
+def test_mnemosyne_app_config_has_omp_dirs():
+    """Verify MnemosyneAppConfig exposes omp directories distinct from pi."""
+    mcfg = MnemosyneAppConfig()
+    assert hasattr(mcfg, "omp_config_dir")
+    assert hasattr(mcfg, "omp_dir")
+    assert mcfg.omp_dir == mcfg.omp_config_dir
+    assert mcfg.omp_dir != mcfg.pi_dir
+
+
+def test_omp_auto_configuration(tmp_path, monkeypatch):
+    """Verify setup_omp_models_and_auth provisions models.json, models.yml, settings, and auth in .omp."""
+    from local_ai_launcher.harnesses.omp import setup_omp_models_and_auth
+
+    test_start_dir = tmp_path / "test_project"
+    test_start_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(config, "harness_start_dir", test_start_dir)
+
+    # Stale project settings should be purged
+    stale_omp_settings = test_start_dir / ".omp" / "settings.json"
+    stale_omp_settings.parent.mkdir(parents=True, exist_ok=True)
+    stale_omp_settings.write_text('{"defaultProvider":"stale"}', encoding="utf-8")
+
+    omp_home = tmp_path / ".omp"
+    pi_home = tmp_path / ".pi"
+    setup_omp_models_and_auth(omp_home, "http://localhost:8080/v1", "qwen-test-model")
+
+    # Stale project-level settings removed
+    assert not stale_omp_settings.exists()
+
+    # Pi directory remains untouched (separate and distinct!)
+    assert not pi_home.exists()
+
+    # Verify agent settings.json
+    agent_settings = omp_home / "agent" / "settings.json"
+    assert agent_settings.exists()
+    settings = json.loads(agent_settings.read_text(encoding="utf-8"))
+    assert settings["defaultProvider"] == "openai"
+    assert settings["defaultModel"] == "qwen-test-model"
+    assert "openai/*" in settings["enabledModels"]
+
+    # Verify models.json
+    models_file = omp_home / "agent" / "models.json"
+    assert models_file.exists()
+    models_data = json.loads(models_file.read_text(encoding="utf-8"))
+    assert "openai" in models_data["providers"]
+    assert models_data["providers"]["openai"]["baseUrl"] == "http://localhost:8080/v1"
+    models_list = models_data["providers"]["openai"]["models"]
+    assert any(m["id"] == "qwen-test-model" for m in models_list)
+
+    # Verify models.yml exists
+    models_yml = omp_home / "agent" / "models.yml"
+    assert models_yml.exists()
+    yml_text = models_yml.read_text(encoding="utf-8")
+    assert "openai:" in yml_text
+    assert "baseUrl: http://localhost:8080/v1" in yml_text
+
+    # Verify auth.json exists
+    auth_file = omp_home / "agent" / "auth.json"
+    assert auth_file.exists()
+    auth_data = json.loads(auth_file.read_text(encoding="utf-8"))
+    assert "openai" in auth_data
+    assert auth_data["openai"]["key"] == "dummy"
+
+
+def test_omp_adapter_executable_and_start(tmp_path, monkeypatch):
+    """Verify OmpAdapter executes properly, sets OMP_HOME, and passes expected CLI args."""
+    from local_ai_launcher.harnesses.omp import OmpAdapter
+
+    dummy_processes = []
+    omp_home = tmp_path / ".omp"
+    monkeypatch.setattr(config, "omp_dir", omp_home)
+    monkeypatch.setattr(config, "harness_start_dir", tmp_path / "work")
+
+    adapter = OmpAdapter(str(tmp_path), dummy_processes)
+    assert adapter.name == "omp"
+    assert adapter.install_behavior == "always_install"
+    assert adapter.update_behavior == "always_update"
+
+    # Test check when omp binary is found
+    fake_omp = tmp_path / "omp.cmd"
+    fake_omp.write_text("@echo off\necho omp 1.0\n", encoding="utf-8")
+    monkeypatch.setattr(adapter, "omp_exe", fake_omp)
+    monkeypatch.setattr(adapter, "_should_update", lambda: False)
+
+    assert adapter.check() is True
+
+    # Test start
+    started_commands = []
+    def mock_start_in_wt_tab(cmd, cwd=None, title=None):
+        started_commands.append((cmd, cwd, title))
+        proc = type("MockProc", (), {"poll": lambda self: None})()
+        return proc
+
+    monkeypatch.setattr("local_ai_launcher.harnesses.omp.start_in_wt_tab", mock_start_in_wt_tab)
+    adapter.start("http://localhost:8080/v1", "test-omp-model", launch_tui=True)
+
+    assert len(started_commands) == 1
+    cmd_str, cwd, title = started_commands[0]
+    assert title == "Oh My Pi"
+    assert "$env:OMP_HOME=" in cmd_str
+    assert "$env:OPENAI_BASE_URL=" in cmd_str
+    assert "--provider openai --model test-omp-model" in cmd_str
+    assert len(dummy_processes) == 1
+    assert dummy_processes[0][0] == "Oh My Pi coding agent"
+
+
+def test_context_preloader_omp_prefix():
+    """Verify build_harness_prefix builds Oh My Pi (omp) system prompt and tools."""
+    from local_ai_launcher.context_preloader import build_harness_prefix
+
+    prefix = build_harness_prefix("omp", "test-model")
+    assert prefix is not None
+    assert "messages" in prefix
+    assert "tools" in prefix
+    assert "Oh My Pi" in prefix["messages"][0]["content"]
+
+    prefix_alias = build_harness_prefix("oh-my-pi", "test-model")
+    assert "Oh My Pi" in prefix_alias["messages"][0]["content"]
+
+
+
 
 
 

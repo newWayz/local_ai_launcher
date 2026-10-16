@@ -18,6 +18,7 @@ from local_ai_launcher.paths import (
     PROJECTS_DIR,
     HERMES_DIR,
     PI_DIR,
+    OMP_DIR,
     DSH_DIR,
     T3_DIR,
     ORCA_DIR,
@@ -857,6 +858,7 @@ class LauncherConfig:
     litellm_install_behavior: str = "always_install"
     harness_install_behaviors: Dict[str, str] = field(default_factory=lambda: {
         'pi': 'always_install', 'pie': 'always_install', 'hermes': 'always_install', 'opencode': 'never_install',
+        'omp': 'always_install', 'oh-my-pi': 'always_install',
         'agy': 'always_install', 'deepseek': 'always_install', 'orca': 'always_install', 't3': 'always_install',
         'agy-ide': 'always_install', 'agy-desktop': 'always_install', 'openlumara': 'always_install',
         'antigravity': 'always_install', 'claude': 'always_install', 'claude-code': 'always_install',
@@ -878,6 +880,7 @@ class LauncherConfig:
     litellm_update_behavior: str = "never_update"
     harness_update_behaviors: Dict[str, str] = field(default_factory=lambda: {
         'pi': 'always_update', 'pie': 'never_update', 'hermes': 'always_update', 'opencode': 'always_update',
+        'omp': 'always_update', 'oh-my-pi': 'always_update',
         'agy': 'always_update', 'deepseek': 'always_update', 'orca': 'always_update', 't3': 'always_update',
         'agy-ide': 'always_update', 'agy-desktop': 'always_update', 'openlumara': 'always_update',
         'antigravity': 'always_update', 'claude': 'always_update', 'claude-code': 'always_update',
@@ -892,16 +895,18 @@ class LauncherConfig:
     
     harness_extensions: Dict[str, List[str]] = field(default_factory=lambda: {
         'pi': ["https://github.com/tmdgusya/roach-pi", "npm:donsetch"], 'hermes': [], 'pie': [], 'opencode': [], 'agy': [],
+        'omp': [], 'oh-my-pi': [],
         'deepseek': [], 'orca': [], 't3': [], 'agy-ide': [], 'agy-desktop': [], 'openlumara': [],
         'antigravity': [], 'claude': [], 'claude-desktop': []
     })
     harness_plugins: Dict[str, List[str]] = field(default_factory=lambda: {
         'deepseek': ["github:dondai44423/donsetch-dsh"], 'hermes': [], 'pie': [], 'opencode': [], 'agy': [],
-        'pi': [], 'orca': [], 't3': [], 'agy-ide': [], 'agy-desktop': [], 'openlumara': [],
+        'pi': [], 'omp': [], 'oh-my-pi': [], 'orca': [], 't3': [], 'agy-ide': [], 'agy-desktop': [], 'openlumara': [],
         'antigravity': [], 'claude': [], 'claude-desktop': []
     })
     harness_skills: Dict[str, List[str]] = field(default_factory=lambda: {
         'pi': ["https://github.com/DietrichGebert/ponytail"], 'hermes': [], 'pie': [], 'opencode': [], 'agy': [],
+        'omp': [], 'oh-my-pi': [],
         'deepseek': [], 'orca': [], 't3': [], 'agy-ide': [], 'agy-desktop': [], 'openlumara': [],
         'antigravity': [], 'claude': [], 'claude-desktop': []
     })
@@ -1166,6 +1171,7 @@ class LauncherConfig:
         # Attach workspace paths
         self.hermes_dir = HERMES_DIR
         self.pi_dir = PI_DIR
+        self.omp_dir = OMP_DIR
         self.dsh_dir = DSH_DIR
         self.t3_dir = T3_DIR
         self.orca_dir = ORCA_DIR
@@ -1732,6 +1738,7 @@ class MnemosyneAppConfig:
     projects_dir: Path = PROJECTS_DIR
     hermes_config_dir: Path = HERMES_DIR
     pi_config_dir: Path = PI_DIR
+    omp_config_dir: Path = OMP_DIR
     t3_config_dir: Path = T3_DIR
     orca_config_dir: Path = ORCA_DIR
     agy_ide_config_dir: Path = AGY_IDE_DIR
@@ -1748,6 +1755,10 @@ class MnemosyneAppConfig:
     @property
     def pi_dir(self) -> Path:
         return self.pi_config_dir
+
+    @property
+    def omp_dir(self) -> Path:
+        return self.omp_config_dir
 
     @property
     def t3_dir(self) -> Path:

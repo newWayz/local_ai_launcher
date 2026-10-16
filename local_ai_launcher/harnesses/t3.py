@@ -96,6 +96,19 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
     except Exception as hermes_err:
         logger.warning(f"  -> Warning: Hermes configuration notice for T3: {hermes_err}")
 
+    try:
+        from local_ai_launcher.harnesses.omp import setup_omp_models_and_auth
+        setup_omp_models_and_auth(
+            getattr(config, "omp_dir", AI_WORKSPACE_DIR / ".omp"),
+            llm_base_url,
+            active_model=model_name,
+            use_omniroute=config.use_omniroute_proxy,
+            omniroute_model=config.omniroute_default_model
+        )
+        logger.info("  -> Synced workspace OMP models and auth for T3 Code integration.")
+    except Exception as omp_err:
+        logger.warning(f"  -> Warning: OMP models and auth configuration notice for T3: {omp_err}")
+
     # Synchronize USER.md into T3 directory for global reference
     user_md_src = CONFIG_DIR / "USER.md"
     if user_md_src.exists():
@@ -110,11 +123,13 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
         model_name=model_name,
         cfg=config
     )
-    # When Strata engine is active and Claude is resolved, default to claude; otherwise hermes if resolved, else pi
+    # When Strata engine is active and Claude is resolved, default to claude; otherwise hermes/omp if resolved, else pi
     if inner_cli == "claude":
         default_harness = "claude"
     elif inner_cli == "hermes":
         default_harness = "hermes"
+    elif inner_cli in ("omp", "oh-my-pi", "ohmypi"):
+        default_harness = "omp"
     else:
         default_harness = "pi"
 
@@ -147,6 +162,17 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
     pi_provider_spec = {
         "npm": "@ai-sdk/openai-compatible",
         "name": "Pi Coding Harness",
+        "options": {
+            "baseURL": llm_base_url,
+            "apiKey": "dummy"
+        },
+        "baseURL": llm_base_url,
+        "models": opencode_models_dict
+    }
+
+    omp_provider_spec = {
+        "npm": "@ai-sdk/openai-compatible",
+        "name": "Oh My Pi",
         "options": {
             "baseURL": llm_base_url,
             "apiKey": "dummy"
@@ -193,6 +219,7 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
         "disabled_providers": ["openai", "opencode", "anthropic", "google"],
         "provider": {
             "pi": pi_provider_spec,
+            "omp": omp_provider_spec,
             "hermes": hermes_provider_spec
         },
         "model": f"{default_harness}/{model_name}",
@@ -200,6 +227,10 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
             "pi": {
                 "description": "Delegate coding tasks to Pi coding agent",
                 "template": f"Use Pi coding agent (installed at {(AI_WORKSPACE_DIR / 'node' / 'pi.ps1').as_posix()}) to complete this task: $ARGUMENTS"
+            },
+            "omp": {
+                "description": "Delegate coding tasks to Oh My Pi coding agent",
+                "template": f"Use Oh My Pi coding agent to complete this task: $ARGUMENTS"
             },
             "hermes": {
                 "description": "Delegate tasks to Hermes agent stack",
@@ -209,6 +240,10 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
         "agent": {
             "pi": {
                 "description": "Pi Coding Agent Harness",
+                "mode": "subagent"
+            },
+            "omp": {
+                "description": "Oh My Pi Coding Agent Harness",
                 "mode": "subagent"
             },
             "hermes": {
@@ -260,15 +295,26 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
         "model": f"hermes/{model_name}"
     }
     pi_config_file = t3_home / "opencode_pi.json"
+    omp_config_file = t3_home / "opencode_omp.json"
     hermes_config_file = t3_home / "opencode_hermes.json"
+    opencode_omp_config = {
+        "$schema": "https://opencode.ai/config.json",
+        "enabled_providers": ["omp"],
+        "disabled_providers": ["openai", "opencode", "anthropic", "google", "localai", "pi", "hermes", "claude"],
+        "provider": {
+            "omp": dict(omp_provider_spec, name=" ")
+        },
+        "model": f"omp/{model_name}"
+    }
     atomic_write_json(pi_config_file, opencode_pi_config)
+    atomic_write_json(omp_config_file, opencode_omp_config)
     atomic_write_json(hermes_config_file, opencode_hermes_config)
 
     claude_config_file = t3_home / "opencode_claude.json"
     opencode_claude_config = {
         "$schema": "https://opencode.ai/config.json",
         "enabled_providers": ["claude"],
-        "disabled_providers": ["openai", "opencode", "anthropic", "google", "localai", "pi", "hermes"],
+        "disabled_providers": ["openai", "opencode", "anthropic", "google", "localai", "pi", "omp", "hermes"],
         "provider": {
             "claude": dict(claude_provider_spec, name=" ")
         },
@@ -292,13 +338,16 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
     # Separate XDG data/cache/state directories for each harness instance so that concurrent
     # OpenCode processes never collide or lock the shared SQLite database (opencode.db).
     pi_data_dir = t3_home / "opencode_data" / "pi"
+    omp_data_dir = t3_home / "opencode_data" / "omp"
     hermes_data_dir = t3_home / "opencode_data" / "hermes"
     pi_cache_dir = t3_home / "opencode_cache" / "pi"
+    omp_cache_dir = t3_home / "opencode_cache" / "omp"
     hermes_cache_dir = t3_home / "opencode_cache" / "hermes"
     pi_state_dir = t3_home / "opencode_state" / "pi"
+    omp_state_dir = t3_home / "opencode_state" / "omp"
     hermes_state_dir = t3_home / "opencode_state" / "hermes"
 
-    for d in [pi_data_dir, hermes_data_dir, pi_cache_dir, hermes_cache_dir, pi_state_dir, hermes_state_dir]:
+    for d in [pi_data_dir, omp_data_dir, hermes_data_dir, pi_cache_dir, omp_cache_dir, hermes_cache_dir, pi_state_dir, omp_state_dir, hermes_state_dir]:
         d.mkdir(parents=True, exist_ok=True)
 
     local_env = [
@@ -331,6 +380,14 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
         {"name": "XDG_DATA_HOME", "value": pi_data_dir.as_posix()},
         {"name": "XDG_CACHE_HOME", "value": pi_cache_dir.as_posix()},
         {"name": "XDG_STATE_HOME", "value": pi_state_dir.as_posix()},
+    ]
+    omp_env = list(local_env) + [
+        {"name": "OMP_HOME", "value": str(AI_WORKSPACE_DIR / ".omp")},
+        {"name": "PI_CODING_AGENT_DIR", "value": str(AI_WORKSPACE_DIR / ".omp" / "agent")},
+        {"name": "OPENCODE_CONFIG", "value": omp_config_file.as_posix()},
+        {"name": "XDG_DATA_HOME", "value": omp_data_dir.as_posix()},
+        {"name": "XDG_CACHE_HOME", "value": omp_cache_dir.as_posix()},
+        {"name": "XDG_STATE_HOME", "value": omp_state_dir.as_posix()},
     ]
     hermes_env = list(local_env) + [
         {"name": "OPENCODE_CONFIG", "value": hermes_config_file.as_posix()},
@@ -420,6 +477,18 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
                 "accentColor": "#6366f1",
                 "enabled": True,
                 "environment": pi_env,
+                "models": models_list,
+                "config": {
+                    "binaryPath": str(opencode_exe),
+                    "models": models_list
+                }
+            }
+            provider_instances["omp"] = {
+                "driver": "opencode",
+                "displayName": "Oh My Pi",
+                "accentColor": "#8b5cf6",
+                "enabled": True,
+                "environment": omp_env,
                 "models": models_list,
                 "config": {
                     "binaryPath": str(opencode_exe),
