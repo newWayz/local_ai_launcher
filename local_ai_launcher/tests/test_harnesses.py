@@ -1039,7 +1039,7 @@ def test_orca_config_claude_isolation(tmp_path, monkeypatch):
 
     # 1. claude-local has isolated config dir and local endpoint
     assert "claude-local" in agent_env
-    assert "local" in agent_env["claude-local"]["CLAUDE_CONFIG_DIR"]
+    assert ".cbox" in agent_env["claude-local"]["CLAUDE_CONFIG_DIR"]
     assert agent_env["claude-local"]["ANTHROPIC_BASE_URL"] == "http://localhost:8080"
     assert agent_env["claude-local"]["ANTHROPIC_API_KEY"] == "dummy-token"
 
@@ -1051,7 +1051,7 @@ def test_orca_config_claude_isolation(tmp_path, monkeypatch):
     # 3. agentCmdOverrides routes claude-local to isolated runner
     cmd_overrides = content["settings"]["agentCmdOverrides"]
     assert "claude-local" in cmd_overrides
-    assert "claude-local" in cmd_overrides["claude-local"]
+    assert "cbox" in cmd_overrides["claude-local"] or "claude-local" in cmd_overrides["claude-local"]
 
 
 def test_hermes_adapter_trampoline_cleanup(tmp_path, monkeypatch):
@@ -1698,7 +1698,7 @@ def test_claude_adapter_local_profile_preseeded(tmp_path, monkeypatch):
     adapter = ClaudeAdapter(str(tmp_path), [])
     adapter.start("http://127.0.0.1:8080/v1", active_model="strata")
 
-    local_profile = test_claude_dir / "local"
+    local_profile = adapter.claude_local_dir
     assert (local_profile / ".claude.json").exists()
     assert (local_profile / "settings.json").exists()
 
@@ -1785,7 +1785,7 @@ def test_claude_permission_mode_smart_and_overrides(tmp_path, monkeypatch):
     adapter = ClaudeAdapter(str(tmp_path), [])
     adapter.start("http://127.0.0.1:8080/v1", active_model="strata")
 
-    smart_profile = test_claude_dir / "local"
+    smart_profile = adapter.claude_local_dir
     smart_settings = json.loads((smart_profile / "settings.json").read_text(encoding="utf-8"))
     assert smart_settings["permissions"]["defaultMode"] == "acceptEdits"
 
@@ -2020,9 +2020,9 @@ def test_simultaneous_claude_cli_local_and_desktop_official(tmp_path, monkeypatc
     assert "Claude Code [LOCAL OFFLINE]" in cli_cmd
     assert "$env:ANTHROPIC_BASE_URL='http://127.0.0.1:8080';" in cli_cmd
     assert "$env:ANTHROPIC_API_KEY='dummy-token';" in cli_cmd
-    assert f"$env:CLAUDE_CONFIG_DIR='{workspace_claude / 'local'}';" in cli_cmd
+    assert f"$env:CLAUDE_CONFIG_DIR='{cli_adapter.claude_local_dir}';" in cli_cmd
 
-    local_claude_json = workspace_claude / "local" / ".claude.json"
+    local_claude_json = cli_adapter.claude_local_dir / ".claude.json"
     assert local_claude_json.exists()
     cfg_data = json.loads(local_claude_json.read_text(encoding="utf-8"))
     assert cfg_data["hasCompletedOnboarding"] is True
@@ -2072,7 +2072,7 @@ def test_simultaneous_claude_local_and_claude_official(tmp_path, monkeypatch):
     assert "Claude Code [LOCAL OFFLINE]" in local_cmd
     assert "$env:ANTHROPIC_BASE_URL='http://127.0.0.1:8080';" in local_cmd
     assert "$env:ANTHROPIC_API_KEY='dummy-token';" in local_cmd
-    assert f"$env:CLAUDE_CONFIG_DIR='{workspace_claude / 'local'}';" in local_cmd
+    assert f"$env:CLAUDE_CONFIG_DIR='{local_adapter.claude_local_dir}';" in local_cmd
 
     # Tab 2: Official
     official_cmd = captured_cmds[1]
@@ -3300,19 +3300,19 @@ def test_claude_cli_dynamic_context_and_auto_compact_from_strata(tmp_path, monke
     assert "239,000" in cmd
 
     # Verify settings.json
-    settings_file = adapter.claude_dir / "local" / "settings.json"
+    settings_file = adapter.claude_local_dir / "settings.json"
     assert settings_file.exists()
     settings_data = json.loads(settings_file.read_text(encoding="utf-8"))
     assert settings_data["env"]["CLAUDE_CODE_MAX_CONTEXT_TOKENS"] == "262144"
     assert settings_data["env"]["CLAUDE_CODE_AUTO_COMPACT_WINDOW"] == "239000"
 
     # Verify helper scripts
-    ps1_file = adapter.claude_dir / "local" / "claude-local.ps1"
+    ps1_file = adapter.claude_local_dir / "claude-local.ps1"
     assert ps1_file.exists()
     assert '$env:CLAUDE_CODE_MAX_CONTEXT_TOKENS = "262144"' in ps1_file.read_text(encoding="utf-8")
     assert '$env:CLAUDE_CODE_AUTO_COMPACT_WINDOW = "239000"' in ps1_file.read_text(encoding="utf-8")
 
-    sh_file = adapter.claude_dir / "local" / "claude-local.sh"
+    sh_file = adapter.claude_local_dir / "claude-local.sh"
     assert sh_file.exists()
     assert 'export CLAUDE_CODE_MAX_CONTEXT_TOKENS="262144"' in sh_file.read_text(encoding="utf-8")
     assert 'export CLAUDE_CODE_AUTO_COMPACT_WINDOW="239000"' in sh_file.read_text(encoding="utf-8")
@@ -3596,7 +3596,7 @@ def test_claude_thinking_mode_resolution_and_runner_scripts(tmp_path, monkeypatc
     adapter = ClaudeAdapter(str(tmp_path), [])
     adapter.start("http://127.0.0.1:8080/v1", active_model="strata")
 
-    local_prof = test_claude_dir / "local"
+    local_prof = adapter.claude_local_dir
     settings_data = json.loads((local_prof / "settings.json").read_text(encoding="utf-8"))
     assert settings_data["alwaysThinkingEnabled"] is False
     assert settings_data["env"]["MAX_THINKING_TOKENS"] == "0"

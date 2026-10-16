@@ -23,6 +23,7 @@ from local_ai_launcher.paths import (
     ORCA_DIR,
     ORCA_DATA_DIR,
     CLAUDE_DIR,
+    CLAUDE_LOCAL_DIR,
     CLAUDE_DESKTOP_DIR,
     GITHUB_DIR,
     AGY_IDE_DIR,
@@ -926,6 +927,7 @@ class LauncherConfig:
 
     # Claude Code CLI & Desktop Configuration
     claude_dir: Path = CLAUDE_DIR
+    claude_local_dir: Path = CLAUDE_LOCAL_DIR
     claude_mode: str = "local"
     claude_mode_explicit: bool = False
     claude_model: str = "claude-sonnet-4-5"
@@ -1735,6 +1737,7 @@ class MnemosyneAppConfig:
     agy_ide_config_dir: Path = AGY_IDE_DIR
     agy_desktop_config_dir: Path = AGY_DESKTOP_DIR
     claude_config_dir: Path = CLAUDE_DIR
+    claude_local_config_dir: Path = CLAUDE_LOCAL_DIR
     claude_desktop_config_dir: Path = CLAUDE_DESKTOP_DIR
     mnemosyne_db_path: Path = CONFIG_DIR / "mnemosyne" / "memory.db"
     
@@ -1769,6 +1772,17 @@ class MnemosyneAppConfig:
     @property
     def claude_dir(self) -> Path:
         return self.claude_config_dir
+
+    @property
+    def claude_local_dir(self) -> Path:
+        custom = getattr(self.cfg, "claude_local_dir", None)
+        if custom is not None and custom != CLAUDE_LOCAL_DIR:
+            return custom
+        if self.claude_dir != CLAUDE_DIR:
+            if self.claude_dir.name == ".claude":
+                return self.claude_dir.parent / ".cbox"
+            return self.claude_dir / ".cbox"
+        return self.claude_local_config_dir
 
     @property
     def claude_desktop_dir(self) -> Path:

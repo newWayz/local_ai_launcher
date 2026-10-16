@@ -38,7 +38,7 @@ def test_claude_cli_always_disallows_cloud_search_in_local_offline_mode(tmp_path
     adapter = ClaudeAdapter(str(tmp_path), [])
     adapter.start("http://127.0.0.1:8080/v1", active_model="strata")
 
-    local_profile = test_claude_dir / "local"
+    local_profile = adapter.claude_local_dir
     settings_file = local_profile / "settings.json"
     assert settings_file.exists()
 
@@ -479,11 +479,11 @@ def test_claude_md_reseed_regenerates_contract(tmp_path, monkeypatch):
     test_claude_dir = tmp_path / ".claude"
     monkeypatch.setattr(config, "claude_dir", test_claude_dir)
 
-    local_profile = test_claude_dir / "local"
-    local_profile.mkdir(parents=True)
+    adapter = ClaudeAdapter(str(tmp_path), [])
+    local_profile = adapter.claude_local_dir
+    local_profile.mkdir(parents=True, exist_ok=True)
     (local_profile / "CLAUDE.md").write_text("user junk that must not survive reseed", encoding="utf-8")
 
-    adapter = ClaudeAdapter(str(tmp_path), [])
     adapter._setup_isolated_local_profile(
         anthropic_base="http://127.0.0.1:8080",
         claude_model="claude-sonnet-4-5",

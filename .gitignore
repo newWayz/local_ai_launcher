@@ -20,6 +20,7 @@ NTUSER.*
 # AI runtime, agent brains, state databases, and user profiles
 .agents/
 .cache/
+.cbox/
 .claude/
 .cline/
 .dsh/

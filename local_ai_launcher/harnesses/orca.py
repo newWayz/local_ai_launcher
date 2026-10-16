@@ -158,7 +158,12 @@ def setup_orca_config(orca_home: Path, llm_base_url: str, active_model: Optional
 
         if is_claude_offline_mode_active(active_model):
             claude_local_dir = ensure_claude_local_profile(llm_base_url, active_model)
-            claude_runner = str(claude_local_dir / ("claude-local.cmd" if os.name == 'nt' else "claude-local.sh"))
+            runner_file_name = "cbox.cmd" if os.name == 'nt' else "cbox.sh"
+            fallback_runner = "claude-local.cmd" if os.name == 'nt' else "claude-local.sh"
+            if (claude_local_dir / runner_file_name).exists():
+                claude_runner = str(claude_local_dir / runner_file_name)
+            else:
+                claude_runner = str(claude_local_dir / fallback_runner)
             claude_local_env = get_claude_local_env(llm_base_url, active_model)
 
             default_env["claude-local"] = claude_local_env.copy()

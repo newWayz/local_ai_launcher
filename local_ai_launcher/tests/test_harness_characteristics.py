@@ -418,13 +418,13 @@ def test_meta_harnesses_expose_offline_claude_when_strata_active(tmp_path, monke
     # Both "claude" and "claude-local" must route to the offline runner
     assert "claude" in settings["agentCmdOverrides"]
     assert "claude-local" in settings["agentCmdOverrides"]
-    assert "claude-local" in settings["agentCmdOverrides"]["claude"]
-    assert "claude-local" in settings["agentCmdOverrides"]["claude-local"]
+    assert ".cbox" in settings["agentCmdOverrides"]["claude"]
+    assert ".cbox" in settings["agentCmdOverrides"]["claude-local"]
 
     # Both "claude" and "claude-local" env must contain offline telemetry blocks and local endpoint
     claude_env = settings["agentDefaultEnv"]["claude"]
     assert claude_env["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:8080"
-    assert "local" in claude_env["CLAUDE_CONFIG_DIR"]
+    assert ".cbox" in claude_env["CLAUDE_CONFIG_DIR"]
     assert claude_env["DISABLE_TELEMETRY"] == "1"
 
     # 2. Standalone T3 Code
@@ -441,7 +441,7 @@ def test_meta_harnesses_expose_offline_claude_when_strata_active(tmp_path, monke
     # Native claudeAgent provider configuration
     claude_agent_cfg = t3_settings["providers"]["claudeAgent"]
     assert claude_agent_cfg["enabled"] is True
-    assert "local" in claude_agent_cfg["homePath"]
+    assert ".cbox" in claude_agent_cfg["homePath"]
     assert claude_agent_cfg["binaryPath"]
 
     # OpenCode providerInstance for Claude Code
@@ -450,7 +450,7 @@ def test_meta_harnesses_expose_offline_claude_when_strata_active(tmp_path, monke
     assert claude_inst["driver"] == "opencode"
     env_keys = {item["name"]: item["value"] for item in claude_inst["environment"]}
     assert env_keys.get("ANTHROPIC_BASE_URL") == "http://127.0.0.1:8080"
-    assert "local" in env_keys.get("CLAUDE_CONFIG_DIR", "")
+    assert ".cbox" in env_keys.get("CLAUDE_CONFIG_DIR", "")
 
     # opencode_claude.json and caches/claude.json exist
     assert (t3_home / "opencode_claude.json").exists()
@@ -470,7 +470,7 @@ def test_meta_harnesses_expose_offline_claude_when_strata_active(tmp_path, monke
     t3_settings_comb = json.loads(t3_settings_file.read_text(encoding="utf-8"))
     assert t3_settings_comb["defaultModelSelection"]["instanceId"] == "hermes"
     # Offline Claude is STILL available in claudeAgent and providerInstances
-    assert "local" in t3_settings_comb["providers"]["claudeAgent"]["homePath"]
+    assert ".cbox" in t3_settings_comb["providers"]["claudeAgent"]["homePath"]
     assert "claude" in t3_settings_comb["providerInstances"]
 
 

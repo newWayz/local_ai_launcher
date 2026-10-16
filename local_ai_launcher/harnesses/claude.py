@@ -294,6 +294,13 @@ class ClaudeAdapter(HarnessAdapter):
         self.local_bin = AI_WORKSPACE_DIR / "node_modules" / ".bin"
         self.exe_name = "claude.cmd" if os.name == 'nt' else "claude"
         self.claude_dir = getattr(config, "claude_dir", AI_WORKSPACE_DIR / ".claude")
+        cfg_local = getattr(config, "claude_local_dir", None)
+        if cfg_local is not None and (cfg_local != CLAUDE_LOCAL_DIR or self.claude_dir == CLAUDE_DIR):
+            self.claude_local_dir = Path(cfg_local)
+        elif self.claude_dir.name == ".claude":
+            self.claude_local_dir = self.claude_dir.parent / ".cbox"
+        else:
+            self.claude_local_dir = AI_WORKSPACE_DIR / ".cbox"
         self.claude_exe = self._resolve_executable()
 
     def _ensure_native_binary(self) -> Optional[Path]:
@@ -486,7 +493,7 @@ class ClaudeAdapter(HarnessAdapter):
         and guarantees complete physical isolation from the user's official ~/.claude configuration,
         eliminating any risk of account bans or credential corruption.
         """
-        local_profile = self.claude_dir / "local"
+        local_profile = self.claude_local_dir
         local_profile.mkdir(parents=True, exist_ok=True)
 
         eff_perm_mode = permission_mode or resolve_claude_permission_mode(is_desktop=False)
@@ -698,6 +705,7 @@ class ClaudeAdapter(HarnessAdapter):
         )
         try:
             runner_ps1.write_text(ps1_script, encoding="utf-8")
+            (local_profile / "cbox.ps1").write_text(ps1_script, encoding="utf-8")
         except Exception:
             pass
 
@@ -749,8 +757,11 @@ class ClaudeAdapter(HarnessAdapter):
         )
         try:
             runner_sh.write_text(sh_script, encoding="utf-8")
+            cbox_sh = local_profile / "cbox.sh"
+            cbox_sh.write_text(sh_script, encoding="utf-8")
             if os.name != 'nt':
                 runner_sh.chmod(runner_sh.stat().st_mode | 0o111)
+                cbox_sh.chmod(cbox_sh.stat().st_mode | 0o111)
         except Exception:
             pass
 
@@ -802,6 +813,7 @@ class ClaudeAdapter(HarnessAdapter):
         )
         try:
             runner_cmd.write_text(cmd_script, encoding="utf-8")
+            (local_profile / "cbox.cmd").write_text(cmd_script, encoding="utf-8")
         except Exception:
             pass
 
@@ -1152,8 +1164,14 @@ def get_claude_local_env(
 
     claude_model = getattr(config, "claude_model", "claude-sonnet-4-5") or "claude-sonnet-4-5"
     dummy_key = getattr(config, "claude_api_key", "dummy-token") or "dummy-token"
+    cfg_local = getattr(config, "claude_local_dir", None)
     claude_dir = getattr(config, "claude_dir", AI_WORKSPACE_DIR / ".claude")
-    local_profile_dir = claude_dir / "local"
+    if cfg_local is not None and (cfg_local != CLAUDE_LOCAL_DIR or claude_dir == CLAUDE_DIR):
+        local_profile_dir = cfg_local
+    elif claude_dir.name == ".claude":
+        local_profile_dir = claude_dir.parent / ".cbox"
+    else:
+        local_profile_dir = AI_WORKSPACE_DIR / ".cbox"
 
     model_name = resolve_model_name(active_model)
     max_context, auto_compact = resolve_claude_context_and_compact(model_name, is_desktop=False)

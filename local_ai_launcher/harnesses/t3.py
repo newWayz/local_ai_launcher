@@ -803,7 +803,8 @@ class T3Adapter(HarnessAdapter):
             str(AI_WORKSPACE_DIR / "node_modules" / ".bin"),
         ]
         if claude_offline:
-            extra_bin_dirs.append(str(AI_WORKSPACE_DIR / ".claude" / "local"))
+            claude_local_dir = getattr(config, "claude_local_dir", None) or (AI_WORKSPACE_DIR / ".cbox")
+            extra_bin_dirs.append(str(claude_local_dir))
         if getattr(config, "aside_browser_enabled", True):
             try:
                 from local_ai_launcher.paths import get_aside_binary_path
