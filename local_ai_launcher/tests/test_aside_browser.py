@@ -61,6 +61,16 @@ def test_aside_binary_paths(temp_dir):
             resolved = get_aside_binary_path()
             assert resolved == fake_exe
 
+    # Verify workspace tools portable discovery
+    ws_bin = temp_dir / "tools" / "aside" / ("aside.exe" if sys.platform == "win32" else "aside")
+    ws_bin.parent.mkdir(parents=True, exist_ok=True)
+    ws_bin.write_text("fake binary", encoding="utf-8")
+    with patch("local_ai_launcher.paths.AI_WORKSPACE_DIR", temp_dir):
+        with patch.dict(os.environ, {"LOCALAPPDATA": str(temp_dir / "empty_lad")}):
+            with patch("shutil.which", return_value=None):
+                resolved = get_aside_binary_path()
+                assert resolved == ws_bin
+
 
 def test_setup_aside_local_engine(temp_dir):
     """Verify setup_aside_local_engine writes settings.json and credentials.json correctly."""

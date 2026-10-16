@@ -29,14 +29,24 @@ logger = logging.getLogger("aside_backend")
 ASIDE_USER_HOME = Path.home() / ".aside"
 
 
+def get_aside_user_home() -> Path:
+    """Returns Aside user home directory, respecting ASIDE_HOME env, workspace .aside, or default."""
+    if os.environ.get("ASIDE_HOME"):
+        return Path(os.environ["ASIDE_HOME"])
+    workspace_aside = AI_WORKSPACE_DIR / ".aside"
+    if workspace_aside.exists() and workspace_aside.is_dir():
+        return workspace_aside
+    return ASIDE_USER_HOME
+
+
 def get_aside_config_dir(account_id: str = "0") -> Path:
     """Retrieves the configuration and settings directory for the specified Aside account ID."""
-    return ASIDE_USER_HOME / "u" / str(account_id)
+    return get_aside_user_home() / "u" / str(account_id)
 
 
 def get_aside_accounts() -> List[str]:
     """Retrieves all registered Aside account IDs, defaulting to ['0']."""
-    accounts_file = ASIDE_USER_HOME / "accounts.json"
+    accounts_file = get_aside_user_home() / "accounts.json"
     if accounts_file.exists():
         try:
             with open(accounts_file, "r", encoding="utf-8") as f:
@@ -65,7 +75,8 @@ def setup_aside_local_engine(
         logger.warning("No LLM base URL provided for Aside engine configuration.")
         return False
 
-    if not is_aside_installed() and account_ids is None and not (ASIDE_USER_HOME / "accounts.json").exists():
+    aside_home = get_aside_user_home()
+    if not is_aside_installed() and account_ids is None and not (aside_home / "accounts.json").exists():
         logger.debug("Aside browser is not installed; skipping local engine configuration.")
         return False
 

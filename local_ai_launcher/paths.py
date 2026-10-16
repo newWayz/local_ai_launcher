@@ -131,9 +131,15 @@ def get_donsetch_binary_path() -> Optional[Path]:
 
 
 def get_aside_binary_path() -> Optional[Path]:
-    """Portably locate the Aside CLI binary across user AppData, Program Files, or PATH."""
+    """Portably locate the Aside CLI binary across user AppData, Program Files, workspace tools, or PATH."""
     bin_name = "aside.exe" if sys.platform == 'win32' else "aside"
-    candidates = []
+    candidates = [
+        AI_WORKSPACE_DIR / "tools" / "aside" / bin_name,
+        AI_WORKSPACE_DIR / "tools" / "aside" / "CLI" / "current" / bin_name,
+        AI_WORKSPACE_DIR / "bin" / bin_name,
+        AI_WORKSPACE_DIR / "aside" / bin_name,
+        AI_WORKSPACE_DIR / "node_modules" / ".bin" / bin_name,
+    ]
     if sys.platform == 'win32':
         local_appdata = os.environ.get("LOCALAPPDATA")
         if local_appdata:
@@ -168,6 +174,9 @@ def get_aside_app_path() -> Optional[Path]:
     """Locate the Aside Browser desktop application executable."""
     exe_name = "Aside.exe" if sys.platform == 'win32' else "Aside"
     candidates = [
+        AI_WORKSPACE_DIR / "tools" / "aside" / exe_name,
+        AI_WORKSPACE_DIR / "tools" / "Aside" / "Application" / exe_name,
+        AI_WORKSPACE_DIR / "aside" / exe_name,
         Path("C:/Program Files/Aside/Application") / exe_name,
         Path("C:/Program Files (x86)/Aside/Application") / exe_name,
     ]
