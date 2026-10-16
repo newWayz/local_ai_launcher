@@ -12,7 +12,7 @@
   - `8083`: CPU ONNX Gater (`wfzyx/von` ModernBERT System One Reflex Gater)
   - `8084`: CPU Decider-4B FastAPI Engine (`Mapika/decider-4b-v2.1` multi-slot extraction, Mind2Web DOM actions, MCTS policy priors; proxies raw inference to Port 8081)
   - `8085`: Signal CLI Daemon
-  - `8088`: SearXNG Portable Metasearch Service (Tier 3 WSL2 Docker Engine default / Tier 2 Native Waitress / Tier 1 Remote; 0 MB GPU VRAM)
+  - `8088`: SearXNG Portable Metasearch Service (Tier 3 WSL2 Docker Engine default / Tier 2 Native Waitress / Tier 1 Remote; 0 MB GPU VRAM; active for harnesses requiring SearXNG like Claude and Hermes; bypassed when only DonSeTch harnesses Pi and/or DSH are active)
 - **Port 8000**: Intel NPU Speech-to-Text (Parakeet TDT V3 transcription endpoint)
 - **Port 4000**: LiteLLM Proxy (Anthropic Messages <-> OpenAI translation for Claude routing)
 - **Port 20128**: OmniRoute Token Compression Proxy

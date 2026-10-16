@@ -546,7 +546,9 @@ update_frequency_hrs = 168   # Global default update interval in hours (168 = we
 
 # =============================================================================
 # SearXNG Metasearch Engine Settings (Port 8088)
-# Dedicated metasearch service for coding harnesses (Hermes, Pi, DSH, Claude)
+# Dedicated metasearch service for coding harnesses (Hermes, Claude, Orca, T3, etc.).
+# Note: Pi and DeepSeek (DSH) use DonSeTch natively for web research; SearXNG is
+# automatically bypassed and not started when only Pi and/or DSH are active.
 # =============================================================================
 # Available Modes:
 #   - "wsl_docker" (Default): Headless Docker Engine inside WSL2 (~400MB RAM, zero Docker Desktop bloat)

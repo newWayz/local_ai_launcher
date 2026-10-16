@@ -31,7 +31,7 @@ from abc import ABC, abstractmethod
 
 from local_ai_launcher.config import *
 
-def build_ps_env(env_vars: dict, workdir: Optional[Path] = None) -> str:
+def build_ps_env(env_vars: dict, workdir: Optional[Path] = None, harness_name: Optional[str] = None) -> str:
     """Build a PowerShell environment variable setup string with initial working directory."""
     target_dir = workdir if workdir is not None else config.harness_start_dir
     parts = [f"Set-Location '{target_dir}';"]
@@ -40,8 +40,16 @@ def build_ps_env(env_vars: dict, workdir: Optional[Path] = None) -> str:
     if 'HOME' not in env_vars:
         env_vars['HOME'] = str(AI_WORKSPACE_DIR)
 
-    # Inject SearXNG metasearch endpoint for all agent harnesses
-    if getattr(config, 'searxng_enabled', True) and str(getattr(config, 'searxng_mode', 'wsl_docker')).lower() != 'disabled':
+    # Determine if this harness uses DonSeTch instead of SearXNG
+    norm_h = str(harness_name).strip().lower() if harness_name else ""
+    is_donsetch_harness = (
+        (norm_h == "pi" and getattr(config, "pi_donsetch_enabled", True))
+        or (norm_h in ("deepseek", "dsh") and getattr(config, "deepseek_donsetch_enabled", True))
+        or bool(env_vars.get("DONSETCH_BINARY") or env_vars.get("DONSETCH_BIN") or env_vars.get("DONSETCH_DSH_PREFIX"))
+    )
+
+    # Inject SearXNG metasearch endpoint for harnesses using SearXNG
+    if not is_donsetch_harness and getattr(config, 'searxng_enabled', True) and str(getattr(config, 'searxng_mode', 'wsl_docker')).lower() not in ('disabled', 'off', 'none'):
         searxng_url = getattr(config, 'searxng_effective_url', 'http://127.0.0.1:8088')
         if 'SEARXNG_URL' not in env_vars:
             env_vars['SEARXNG_URL'] = searxng_url

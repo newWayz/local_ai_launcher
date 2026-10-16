@@ -307,10 +307,6 @@ class DeepseekAdapter(HarnessAdapter):
             'DSH_HOME': str(dsh_home),
             'DSH_AGENTS_HOME': str(AI_WORKSPACE_DIR / ".agents"),
         }
-        if getattr(config, "searxng_enabled", True) and str(getattr(config, "searxng_mode", "wsl_docker")).lower() != "disabled":
-            searxng_url = getattr(config, "searxng_effective_url", "http://127.0.0.1:8088")
-            dsh_env['SEARXNG_BASE_URL'] = searxng_url
-            dsh_env['SEARXNG_URL'] = searxng_url
         if getattr(config, "deepseek_donsetch_enabled", True):
             from local_ai_launcher.paths import get_donsetch_binary_path
             don_bin = getattr(config, "donsetch_bin", None) or get_donsetch_binary_path()
@@ -321,12 +317,16 @@ class DeepseekAdapter(HarnessAdapter):
             dsh_env['DONSETCH_DSH_CHANNEL'] = getattr(config, "donsetch_channel", "stable")
             if not getattr(config, "donsetch_auto_update", True):
                 dsh_env['DONSETCH_DSH_AUTOUPDATE'] = 'off'
+        elif getattr(config, "searxng_enabled", True) and str(getattr(config, "searxng_mode", "wsl_docker")).lower() not in ("disabled", "off", "none"):
+            searxng_url = getattr(config, "searxng_effective_url", "http://127.0.0.1:8088")
+            dsh_env['SEARXNG_BASE_URL'] = searxng_url
+            dsh_env['SEARXNG_URL'] = searxng_url
 
         node_bin = AI_WORKSPACE_DIR / "node"
         if node_bin.exists():
             dsh_env['PATH'] = f"{node_bin};{os.environ.get('PATH', '')}"
 
-        env_setup = build_ps_env(dsh_env)
+        env_setup = build_ps_env(dsh_env, harness_name="deepseek")
         
         # Pre-evaluate DeepSeek agent context and tool definitions into KV cache for sub-second TTFT
         try:

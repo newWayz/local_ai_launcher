@@ -316,14 +316,15 @@ def start_cpu_auxiliary_engines(processes):
         concurrent.futures.wait(futures)
 
 
-def start_searxng_service(processes):
+def start_searxng_service(processes, selected_harnesses=None):
     """Initializes SearXNG metasearch service for coding harnesses."""
-    if getattr(config, 'searxng_enabled', True) and str(getattr(config, 'searxng_mode', 'wsl_docker')).lower() != 'disabled':
-        try:
-            from local_ai_launcher.backends.searxng import start_searxng_server
-            start_searxng_server(processes)
-        except Exception as e:
-            logger.debug(f"Notice: SearXNG metasearch service startup: {e}")
+    from local_ai_launcher.backends.searxng import should_start_searxng, start_searxng_server
+    if not should_start_searxng(selected_harnesses):
+        return
+    try:
+        start_searxng_server(processes)
+    except Exception as e:
+        logger.debug(f"Notice: SearXNG metasearch service startup: {e}")
 
 
 def start_localai_engine(processes):
@@ -711,8 +712,8 @@ def main():
     # 3. Start Intel NPU Voice-to-Text service
     start_voice_to_text(processes)
 
-    # 4. Start SearXNG Metasearch service (if enabled)
-    start_searxng_service(processes)
+    # 4. Start SearXNG Metasearch service (if enabled and required by active harnesses)
+    start_searxng_service(processes, selected_harnesses=selected_harnesses)
 
     # Concurrent Track 2: Start CPU Auxiliary Decision & Reranking engines in parallel with LLM engine
     default_m = str(getattr(config, "default_model", "")).lower()

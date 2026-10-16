@@ -190,8 +190,13 @@ def setup_pi_web_search_config(pi_home, workflow=None, auto_open_browser=None):
                     ws_data = {}
             ws_data["workflow"] = workflow
             ws_data["autoOpenBrowser"] = auto_open_browser
-            if getattr(config, "searxng_enabled", True) and str(getattr(config, "searxng_mode", "wsl_docker")).lower() != "disabled":
+            if getattr(config, "pi_donsetch_enabled", True):
+                # Pi uses DonSeTch for web research; remove SearXNG routing
+                ws_data.pop("searxngBaseUrl", None)
+            elif getattr(config, "searxng_enabled", True) and str(getattr(config, "searxng_mode", "wsl_docker")).lower() not in ("disabled", "off", "none"):
                 ws_data["searxngBaseUrl"] = getattr(config, "searxng_effective_url", "http://127.0.0.1:8088")
+            else:
+                ws_data.pop("searxngBaseUrl", None)
             if "provider" not in ws_data:
                 ws_data["provider"] = "all"
 
@@ -703,7 +708,7 @@ class PiAdapter(HarnessAdapter):
             if don_bin:
                 pi_env_dict['DONSETCH_BINARY'] = str(don_bin)
                 pi_env_dict['DONSETCH_BIN'] = str(don_bin)
-        env_setup = build_ps_env(pi_env_dict)
+        env_setup = build_ps_env(pi_env_dict, harness_name="pi")
         logger.info("Starting Pi coding agent...")
         try:
             pi_process = start_in_wt_tab(f'powershell.exe -NoExit -Command "chcp 65001 | Out-Null; [console]::InputEncoding=[console]::OutputEncoding=[System.Text.Encoding]::UTF8; {env_setup}{pi_cmd}"', cwd=str(config.harness_start_dir))

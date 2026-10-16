@@ -696,10 +696,68 @@ def start_searxng_wsl_docker(
     return start_searxng_native(processes, port)
 
 
-def start_searxng_server(processes: List) -> bool:
+DONSETCH_HARNESSES = {"pi", "deepseek", "dsh"}
+
+
+def should_start_searxng(selected_harnesses: Optional[Any] = None) -> bool:
+    """
+    Determines whether the SearXNG metasearch service should be started.
+
+    SearXNG should NOT be started if:
+    1. searxng_enabled is False or searxng_mode is 'disabled' / 'off' / 'none'.
+    2. No harnesses are started / selected.
+    3. The ONLY harnesses started are Pi and/or DeepSeek (dsh), which use DonSeTch
+       (unless DonSeTch is explicitly disabled for that harness, requiring SearXNG fallback).
+    """
+    if not getattr(config, "searxng_enabled", True):
+        return False
+
+    mode = str(getattr(config, "searxng_mode", "wsl_docker")).strip().lower()
+    if mode in ("disabled", "off", "none"):
+        return False
+
+    if selected_harnesses is not None:
+        raw = selected_harnesses
+    else:
+        raw = getattr(config, "choose_harness", [])
+
+    if isinstance(raw, str):
+        raw = [raw]
+    elif not isinstance(raw, (list, tuple, set)):
+        raw = []
+
+    active = [
+        str(h).strip().lower() for h in raw
+        if h and str(h).strip().lower() not in ("none", "off", "disabled", "no", "false")
+    ]
+    if not active:
+        logger.info("Notice: No active coding harness selected; skipping SearXNG metasearch service startup.")
+        return False
+
+    # Check if any active harness requires SearXNG:
+    # Pi and DeepSeek (dsh) use DonSeTch by default.
+    # Other harnesses (claude, hermes, orca, t3, opencode, etc.) use SearXNG.
+    for h in active:
+        if h == "pi":
+            if not getattr(config, "pi_donsetch_enabled", True):
+                return True
+        elif h in ("deepseek", "dsh"):
+            if not getattr(config, "deepseek_donsetch_enabled", True):
+                return True
+        else:
+            return True
+
+    logger.info("Notice: Only DonSeTch harnesses selected (pi/dsh); skipping SearXNG metasearch service startup.")
+    return False
+
+
+def start_searxng_server(processes: List, selected_harnesses: Optional[Any] = None) -> bool:
     """
     Main entry point for starting the SearXNG metasearch service based on configured tier.
     """
+    if selected_harnesses is not None and not should_start_searxng(selected_harnesses):
+        return True
+
     if not getattr(config, "searxng_enabled", True):
         return True
 
