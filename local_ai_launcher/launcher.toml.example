@@ -487,7 +487,7 @@ update_frequency_hrs = 168   # Global default update interval in hours (168 = we
 # disallow_cloud_search_online = false
 #
 # Offline Profile Memory (launcher-managed, no key):
-# In local mode, the isolated profile's .claude/local/CLAUDE.md is regenerated on every launch with
+# In local mode, the isolated profile's .cbox/CLAUDE.md is regenerated on every launch with
 # the SearXNG search policy plus the offline answer contract (literal-answer, no unsolicited caveats).
 # Hand-edits to that file are overwritten by design. Applies to any local Claude native engine in
 # offline local mode; Claude Desktop (gateway mode) is unaffected — its behavior is governed by the

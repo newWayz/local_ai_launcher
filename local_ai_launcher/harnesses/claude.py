@@ -1118,7 +1118,7 @@ def ensure_claude_local_profile(
     llm_base_url: Optional[str] = None,
     active_model: Optional[str] = None,
 ) -> Path:
-    """Pre-seeds the isolated local Claude profile (.claude/local) and local runner scripts.
+    """Pre-seeds the isolated local Claude profile (.cbox) and local runner scripts.
 
     Guarantees that .claude.json, settings.json, CLAUDE.md, and local runner scripts
     (claude-local.cmd / claude-local.sh / claude-local.ps1) are fully initialized on disk.
