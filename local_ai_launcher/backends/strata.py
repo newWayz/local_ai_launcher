@@ -328,7 +328,21 @@ def resolve_strata_model_files(model_path_str: str, mtp_path_str: Optional[str] 
     res["shards"] = all_shards
     if all_shards:
         res["first_shard"] = all_shards[0]
-        if len(all_shards) > 1:
+        # Resolve PLE shard containing per_layer_token_embd.weight
+        explicit_ple = (
+            matched_entry.get("ple") or
+            matched_entry.get("ple_shard") or
+            matched_entry.get("ple_gguf")
+        ) if matched_entry else None
+
+        if explicit_ple:
+            p_ple = Path(explicit_ple)
+            res["ple_shard"] = p_ple if p_ple.is_absolute() else AI_WORKSPACE_DIR / p_ple
+        elif "swift" in all_shards[0].name.lower() or "swift" in target_key:
+            # Swift 1.5 family: PLE table (per_layer_token_embd.weight) is in shard 1
+            res["ple_shard"] = all_shards[0]
+        elif len(all_shards) > 1:
+            # Standard multi-shard MoE (SC117, ISTA, Unsloth): PLE table is in shard 2
             res["ple_shard"] = all_shards[1]
         else:
             res["ple_shard"] = all_shards[0]

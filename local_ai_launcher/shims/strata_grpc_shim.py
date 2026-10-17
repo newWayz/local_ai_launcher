@@ -60,17 +60,26 @@ class StrataServicer(BaseBackendServicer):
         except (ValueError, TypeError):
             timeout = 180
         start = time.time()
+        self.last_error = None
         while time.time() - start < timeout:
             if self.process and self.process.poll() is not None:
                 err_snippet = ""
                 try:
-                    log_path = self.strata_dir / "strata_engine.log"
-                    if log_path.exists():
-                        lines = log_path.read_text(encoding="utf-8", errors="replace").strip().splitlines()
-                        err_snippet = "\n".join(lines[-15:])
+                    clean_tag = (self.current_model or "").replace("/", "_").replace("\\", "_").lower()
+                    candidate_logs = [
+                        self.strata_dir / f"strata-{clean_tag}.log",
+                        self.strata_dir / "strata_engine.log",
+                    ]
+                    for log_cand in candidate_logs:
+                        if log_cand and log_cand.exists():
+                            lines = log_cand.read_text(encoding="utf-8", errors="replace").strip().splitlines()
+                            if lines:
+                                err_snippet = "\n".join(lines[-15:])
+                                break
                 except Exception:
                     pass
                 logger.error(f"[strata] Subprocess exited early with code {self.process.returncode}" + (f":\n{err_snippet}" if err_snippet else ""))
+                self.last_error = f"Strata engine exited early with code {self.process.returncode}:\n{err_snippet}" if err_snippet else f"Strata engine exited early with code {self.process.returncode}"
                 return False
             for check_path in ("/v1/models", "/health", "/v1/props"):
                 try:
@@ -244,6 +253,7 @@ class StrataServicer(BaseBackendServicer):
             log_path = self.strata_dir / "strata_engine.log"
             self.log_file = open(log_path, "w", encoding="utf-8", errors="replace")
 
+            self.current_model = model_name
             self.process = subprocess.Popen(
                 cmd,
                 cwd=str(self.strata_dir),
@@ -262,11 +272,11 @@ class StrataServicer(BaseBackendServicer):
             # Strata can take 60-120 seconds on initial RAM pinning
             ready = self._wait_for_health(timeout=180)
             if not ready:
+                err_msg = getattr(self, "last_error", None) or "Timed out waiting for Strata engine to become healthy"
                 self.Free(None, None)
-                return backend_pb2.Result(success=False, message="Timed out waiting for Strata engine to become healthy")
+                return backend_pb2.Result(success=False, message=err_msg)
 
             self.is_ready = True
-            self.current_model = model_name
             logger.info(f"[strata] Model '{model_name}' loaded successfully on {self.http_base}!")
             return backend_pb2.Result(success=True, message=f"Strata ready on {self.http_base}")
         except Exception as e:

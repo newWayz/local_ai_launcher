@@ -781,7 +781,12 @@ def test_strata_shard_companion_discovery_when_dir_exists(tmp_path, monkeypatch)
     assert "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf" in shard_names
     assert "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf" in shard_names
     assert resolved["first_shard"].name == "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf"
-    assert resolved["ple_shard"].name == "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf"
+    # For Swift 1.5, PLE table (per_layer_token_embd.weight) resides in shard 1
+    assert resolved["ple_shard"].name == "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf"
+
+    # For standard Qwen MoE (SC117), PLE table resides in shard 2
+    resolved_sc117 = resolve_strata_model_files("strata-iq3s")
+    assert resolved_sc117["ple_shard"].name == "Qwen3.8-Flash-Next-GSQ-RCO-abliterated-IQ3_S-00002-of-00002.gguf"
 
     # 2. Only shard 1 exists on disk, shard 2 missing
     s1 = target_dir / "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf"
