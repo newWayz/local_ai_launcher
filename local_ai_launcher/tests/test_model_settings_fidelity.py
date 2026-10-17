@@ -763,3 +763,91 @@ def test_ensure_strata_model_installed_portable_download(tmp_path, monkeypatch):
         assert "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf" in filenames
         assert mock_pack.called
 
+
+def test_strata_shard_companion_discovery_when_dir_exists(tmp_path, monkeypatch):
+    """Verify resolve_strata_model_files infers companion shards even when model_dir exists without files."""
+    from local_ai_launcher.backends.strata import resolve_strata_model_files
+
+    # 1. Directory exists, but no shard files exist on disk
+    target_dir = tmp_path / "models" / "llama-server" / "ukisai" / "Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-GGUF"
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    monkeypatch.setattr("local_ai_launcher.backends.strata.AI_WORKSPACE_DIR", tmp_path)
+
+    resolved = resolve_strata_model_files("swift-strata")
+    shards = resolved.get("shards", [])
+    assert len(shards) == 2
+    shard_names = [s.name for s in shards]
+    assert "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf" in shard_names
+    assert "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf" in shard_names
+    assert resolved["first_shard"].name == "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf"
+    assert resolved["ple_shard"].name == "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf"
+
+    # 2. Only shard 1 exists on disk, shard 2 missing
+    s1 = target_dir / "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf"
+    s1.write_text("dummy", encoding="utf-8")
+
+    resolved_partial = resolve_strata_model_files("swift-strata")
+    shards_partial = resolved_partial.get("shards", [])
+    assert len(shards_partial) == 2
+    partial_names = [s.name for s in shards_partial]
+    assert "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf" in partial_names
+
+
+def test_find_strata_model_spec_by_path_and_filename():
+    """Verify find_strata_model_spec resolves by preset name, alias, full path, and shard filename."""
+    from local_ai_launcher.backends.model_installer import find_strata_model_spec
+
+    # By preset key
+    match_key = find_strata_model_spec("swift-qwen-38-flash-strata-iq3s")
+    assert match_key is not None
+    assert match_key[0] == "swift-qwen-38-flash-strata-iq3s"
+
+    # By alias
+    match_alias = find_strata_model_spec("swift-strata")
+    assert match_alias is not None
+    assert match_alias[0] == "swift-qwen-38-flash-strata-iq3s"
+
+    # By shard filename
+    match_file = find_strata_model_spec("Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf")
+    assert match_file is not None
+    assert match_file[0] == "swift-qwen-38-flash-strata-iq3s"
+
+    # By relative path
+    match_path = find_strata_model_spec("models/llama-server/ukisai/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-GGUF/Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf")
+    assert match_path is not None
+    assert match_path[0] == "swift-qwen-38-flash-strata-iq3s"
+
+
+def test_ensure_strata_model_installed_cleans_zero_byte_files(tmp_path, monkeypatch):
+    """Verify ensure_strata_model_installed deletes 0-byte corrupt shards before invoking download."""
+    from local_ai_launcher.backends.model_installer import ensure_strata_model_installed
+    from local_ai_launcher.config import config
+    from unittest.mock import patch
+
+    monkeypatch.setattr(config, "models_install_behavior", "always_install")
+
+    target_dir = tmp_path / "models" / "llama-server" / "ukisai" / "Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-GGUF"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    corrupted_s1 = target_dir / "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf"
+    corrupted_s1.write_bytes(b"")  # 0-byte truncated file
+    assert corrupted_s1.exists() and corrupted_s1.stat().st_size == 0
+
+    downloaded = []
+    def mock_download(repo_id, filename, target_dir):
+        downloaded.append(filename)
+        out_f = Path(target_dir) / filename
+        out_f.write_text("downloaded_content", encoding="utf-8")
+        return True
+
+    with patch("local_ai_launcher.backends.model_installer.AI_WORKSPACE_DIR", tmp_path), \
+         patch("local_ai_launcher.backends.strata.AI_WORKSPACE_DIR", tmp_path), \
+         patch("local_ai_launcher.backends.model_installer.download_model_file", side_effect=mock_download), \
+         patch("local_ai_launcher.backends.strata.ensure_strata_pack", return_value=True):
+
+        ok = ensure_strata_model_installed("swift-strata")
+        assert ok is True
+        assert corrupted_s1.name in downloaded
+        assert corrupted_s1.stat().st_size > 0
+
+

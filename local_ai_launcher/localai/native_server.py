@@ -817,7 +817,8 @@ async def chat_completions(request: Request):
         return await _proxy_to_cpu_llama_server(body, request)
 
     # Check Strata engine boundary exemption
-    is_strata = "strata" in clean_model_lower or getattr(config, "blackwell_engine", "") == "strata"
+    from local_ai_launcher.context_preloader import is_strata_model
+    is_strata = is_strata_model(clean_model_lower) or getattr(config, "blackwell_engine", "") == "strata"
 
     slot_eval_task = None
 

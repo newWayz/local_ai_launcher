@@ -103,37 +103,85 @@ def get_hf_downloader_executable() -> Optional[Path]:
 def download_model_file(repo_id: str, filename: str, target_dir: Path) -> bool:
     """
     Downloads a single model file from Hugging Face into target_dir.
+    Handles repository subdirectories (e.g. 'IQ3_S/file.gguf') and bare filenames,
+    ensuring files land cleanly in target_dir.
     Uses hf.exe CLI when available, falling back to python huggingface_hub.
     """
     target_dir.mkdir(parents=True, exist_ok=True)
-    target_path = target_dir / filename
+    dest_file = target_dir / Path(filename).name
 
-    logger.info(f"Downloading '{filename}' from Hugging Face repo '{repo_id}' into {target_dir}...")
-    hf_exe = get_hf_downloader_executable()
-    if hf_exe:
+    # Clean up corrupted/truncated zero-byte file if present
+    if dest_file.exists() and dest_file.stat().st_size == 0:
         try:
-            cmd = [str(hf_exe), "download", repo_id, filename, "--local-dir", str(target_dir)]
-            logger.info(f"Running: {' '.join(cmd)}")
-            res = subprocess.run(cmd, text=True, encoding='utf-8', errors='replace')
-            if res.returncode == 0 and target_path.exists() and target_path.stat().st_size > 0:
-                logger.info(f"[SUCCESS] Downloaded {filename} ({target_path.stat().st_size // (1024*1024)} MiB)")
+            dest_file.unlink()
+        except Exception:
+            pass
+
+    # Determine local repo root and subpath within repo
+    repo_name = repo_id.split("/")[-1] if "/" in repo_id else repo_id
+    if repo_name in target_dir.parts:
+        idx = target_dir.parts.index(repo_name)
+        local_repo_dir = Path(*target_dir.parts[:idx + 1])
+        sub_dir = Path(*target_dir.parts[idx + 1:]) if idx + 1 < len(target_dir.parts) else Path()
+        subpath_in_repo = (sub_dir / Path(filename).name).as_posix()
+    else:
+        local_repo_dir = target_dir
+        subpath_in_repo = filename.replace("\\", "/")
+
+    # Candidate remote filenames to query on Hugging Face
+    bare_name = Path(filename).name
+    candidates = [subpath_in_repo]
+    if bare_name not in candidates:
+        candidates.append(bare_name)
+    if "IQ3_S" in bare_name and f"IQ3_S/{bare_name}" not in candidates:
+        candidates.append(f"IQ3_S/{bare_name}")
+
+    logger.info(f"Downloading '{bare_name}' from Hugging Face repo '{repo_id}' into {target_dir}...")
+    hf_exe = get_hf_downloader_executable()
+
+    for cand in candidates:
+        if hf_exe:
+            try:
+                cmd = [str(hf_exe), "download", repo_id, cand, "--local-dir", str(local_repo_dir)]
+                logger.info(f"Running: {' '.join(cmd)}")
+                res = subprocess.run(cmd, text=True, encoding='utf-8', errors='replace')
+                if res.returncode == 0:
+                    cand_landed = local_repo_dir / cand
+                    if cand_landed.exists() and cand_landed.resolve() != dest_file.resolve():
+                        try:
+                            if dest_file.exists():
+                                dest_file.unlink()
+                            shutil.move(str(cand_landed), str(dest_file))
+                        except Exception as e:
+                            logger.debug(f"Relocation notice: {e}")
+                    if dest_file.exists() and dest_file.stat().st_size > 0:
+                        logger.info(f"[SUCCESS] Downloaded {dest_file.name} ({dest_file.stat().st_size // (1024*1024)} MiB)")
+                        return True
+                else:
+                    logger.warning(f"hf.exe download returned code {res.returncode} for candidate '{cand}'.")
+            except Exception as e:
+                logger.warning(f"hf.exe download encountered error for candidate '{cand}': {e}. Trying python fallback...")
+
+        # Python huggingface_hub fallback for this candidate
+        try:
+            from huggingface_hub import hf_hub_download
+            logger.info(f"Using huggingface_hub python API to download '{cand}' from {repo_id}...")
+            hf_hub_download(repo_id=repo_id, filename=cand, local_dir=str(local_repo_dir))
+            cand_landed = local_repo_dir / cand
+            if cand_landed.exists() and cand_landed.resolve() != dest_file.resolve():
+                try:
+                    if dest_file.exists():
+                        dest_file.unlink()
+                    shutil.move(str(cand_landed), str(dest_file))
+                except Exception as e:
+                    logger.debug(f"Relocation notice: {e}")
+            if dest_file.exists() and dest_file.stat().st_size > 0:
+                logger.info(f"[SUCCESS] Downloaded {dest_file.name} ({dest_file.stat().st_size // (1024*1024)} MiB)")
                 return True
-            else:
-                logger.warning(f"hf.exe download returned code {res.returncode}. Attempting python fallback...")
         except Exception as e:
-            logger.warning(f"hf.exe download encountered error: {e}. Trying python fallback...")
+            logger.debug(f"huggingface_hub fallback notice for candidate '{cand}': {e}")
 
-    # Python huggingface_hub fallback
-    try:
-        from huggingface_hub import hf_hub_download
-        logger.info(f"Using huggingface_hub python API to download {filename} from {repo_id}...")
-        hf_hub_download(repo_id=repo_id, filename=filename, local_dir=str(target_dir))
-        if target_path.exists() and target_path.stat().st_size > 0:
-            logger.info(f"[SUCCESS] Downloaded {filename} ({target_path.stat().st_size // (1024*1024)} MiB)")
-            return True
-    except Exception as e:
-        logger.error(f"Failed to download {filename} from Hugging Face: {e}")
-
+    logger.error(f"Failed to download {dest_file.name} from Hugging Face repo '{repo_id}' (attempted candidates: {candidates}).")
     return False
 
 
@@ -156,7 +204,7 @@ def find_model_section(parser: configparser.ConfigParser, model_name: str) -> Op
 
 
 def find_strata_model_spec(model_name: str) -> Optional[Tuple[str, dict]]:
-    """Locates the model spec in strata_models.json matching model_name or alias."""
+    """Locates the model spec in strata_models.json matching model_name, alias, or model file path."""
     try:
         from local_ai_launcher.backends.strata import load_strata_model_registry
         clean_target = model_name.strip().lower()
@@ -173,6 +221,17 @@ def find_strata_model_spec(model_name: str) -> Optional[Tuple[str, dict]]:
                 aliases = []
             if clean_target in aliases:
                 return k, v
+
+            # Match by model file path or filename
+            m_model = v.get("model") or v.get("model_path", "")
+            if m_model:
+                clean_m = m_model.strip().lower().replace("\\", "/")
+                target_p = clean_target.replace("\\", "/")
+                if (clean_m == target_p or
+                    Path(clean_m).name == Path(target_p).name or
+                    target_p.endswith(clean_m) or
+                    clean_m.endswith(target_p)):
+                    return k, v
     except Exception as e:
         logger.debug(f"Notice reading strata model registry: {e}")
     return None
@@ -223,6 +282,12 @@ def ensure_strata_model_installed(selected_model_name: str) -> bool:
     behavior = getattr(config, 'models_install_behavior', 'existing').lower().strip()
 
     for target_path in missing:
+        if target_path.exists() and target_path.stat().st_size == 0:
+            try:
+                target_path.unlink()
+            except Exception:
+                pass
+
         filename = target_path.name
         rel_str = str(target_path).replace("\\", "/")
         try:
@@ -252,7 +317,8 @@ def ensure_strata_model_installed(selected_model_name: str) -> bool:
             logger.error(f"Error: Failed to install required Strata model file '{filename}'.")
             return False
 
-    # After download, ensure pack and shared MTP are built/linked
+    # Re-resolve model files after download to update pack_dir and shard paths
+    resolved = resolve_strata_model_files(selected_model_name)
     first_shard = resolved.get("first_shard")
     pack_dir = resolved.get("pack_dir")
     if first_shard and first_shard.exists() and pack_dir:
@@ -272,7 +338,7 @@ def ensure_strata_model_installed(selected_model_name: str) -> bool:
                     try:
                         dest_rt = first_shard.parent / "strata" / "rt" if first_shard.parent.name.upper() != "IQ3_S" else first_shard.parent.parent / "strata" / "rt"
                         dest_rt.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.copytree(str(common_rt), str(dest_rt))
+                        shutil.copytree(str(common_rt), str(dest_rt), dirs_exist_ok=True)
                         logger.info(f"[strata] Copied shared Strata MTP runtime pack to {dest_rt}")
                     except Exception as e:
                         logger.debug(f"[strata] Notice copying shared MTP pack: {e}")

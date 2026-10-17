@@ -197,51 +197,62 @@ def resolve_strata_model_files(model_path_str: str, mtp_path_str: Optional[str] 
     target_key = model_path_str.strip().lower()
 
     # 1. Primary lookup: native Strata model registry (strata_models.json)
-    if not p.exists():
-        registry = load_strata_model_registry()
-        matched_entry = None
-        for m_name, m_spec in registry.items():
-            if m_name.lower() == target_key:
-                matched_entry = m_spec
-                break
-            raw_aliases = m_spec.get("aliases") or m_spec.get("alias", [])
-            if isinstance(raw_aliases, str):
-                aliases = [a.strip().lower() for a in raw_aliases.split(",") if a.strip()]
-            elif isinstance(raw_aliases, list):
-                aliases = [str(a).strip().lower() for a in raw_aliases if str(a).strip()]
-            else:
-                aliases = []
-            if target_key in aliases:
+    registry = load_strata_model_registry()
+    matched_entry = None
+    for m_name, m_spec in registry.items():
+        if m_name.lower() == target_key:
+            matched_entry = m_spec
+            break
+        raw_aliases = m_spec.get("aliases") or m_spec.get("alias", [])
+        if isinstance(raw_aliases, str):
+            aliases = [a.strip().lower() for a in raw_aliases.split(",") if a.strip()]
+        elif isinstance(raw_aliases, list):
+            aliases = [str(a).strip().lower() for a in raw_aliases if str(a).strip()]
+        else:
+            aliases = []
+        if target_key in aliases:
+            matched_entry = m_spec
+            break
+
+        # Match by model path or filename if target_key was supplied as file or subpath
+        m_model = m_spec.get("model") or m_spec.get("model_path", "")
+        if m_model:
+            clean_m = m_model.strip().lower().replace("\\", "/")
+            target_norm = target_key.replace("\\", "/")
+            if (clean_m == target_norm or
+                Path(clean_m).name == Path(target_norm).name or
+                target_norm.endswith(clean_m) or
+                clean_m.endswith(target_norm)):
                 matched_entry = m_spec
                 break
 
-        if matched_entry:
-            cand_tmpl = matched_entry.get("chat_template_file") or matched_entry.get("chat_template")
-            if cand_tmpl:
-                res["chat_template_file"] = str(cand_tmpl)
-            cand_mmproj = matched_entry.get("mmproj")
-            if cand_mmproj:
-                res["mmproj"] = str(cand_mmproj)
-            cand_model = matched_entry.get("model") or matched_entry.get("model_path")
-            if cand_model:
-                cand_p = Path(cand_model)
-                if not cand_p.is_absolute():
-                    cand_p = AI_WORKSPACE_DIR / cand_p
-                if cand_p.exists():
-                    p = cand_p
-                elif (cand_p.parent / "IQ3_S" / cand_p.name).exists():
-                    p = cand_p.parent / "IQ3_S" / cand_p.name
-                elif cand_p.parent.name.upper() == "IQ3_S" and (cand_p.parent.parent / cand_p.name).exists():
-                    p = cand_p.parent.parent / cand_p.name
-                else:
-                    p = cand_p
-            if not mtp_path_str:
-                cand_mtp = matched_entry.get("mtp") or matched_entry.get("mtp_dir")
-                if cand_mtp:
-                    mtp_path_str = str(cand_mtp)
+    if matched_entry:
+        cand_tmpl = matched_entry.get("chat_template_file") or matched_entry.get("chat_template")
+        if cand_tmpl:
+            res["chat_template_file"] = str(cand_tmpl)
+        cand_mmproj = matched_entry.get("mmproj")
+        if cand_mmproj:
+            res["mmproj"] = str(cand_mmproj)
+        cand_model = matched_entry.get("model") or matched_entry.get("model_path")
+        if cand_model:
+            cand_p = Path(cand_model)
+            if not cand_p.is_absolute():
+                cand_p = AI_WORKSPACE_DIR / cand_p
+            if cand_p.exists():
+                p = cand_p
+            elif (cand_p.parent / "IQ3_S" / cand_p.name).exists():
+                p = cand_p.parent / "IQ3_S" / cand_p.name
+            elif cand_p.parent.name.upper() == "IQ3_S" and (cand_p.parent.parent / cand_p.name).exists():
+                p = cand_p.parent.parent / cand_p.name
+            else:
+                p = cand_p
+        if not mtp_path_str:
+            cand_mtp = matched_entry.get("mtp") or matched_entry.get("mtp_dir")
+            if cand_mtp:
+                mtp_path_str = str(cand_mtp)
 
     # 2. Backward compatibility fallback: check models.ini if not found in native registry
-    if not p.exists():
+    if not matched_entry and not p.exists():
         try:
             from local_ai_launcher.presets import load_effective_models_parser
             cp = load_effective_models_parser()
@@ -284,6 +295,7 @@ def resolve_strata_model_files(model_path_str: str, mtp_path_str: Optional[str] 
     shard_name = p.name
 
     # Discover related shards (-00001-of-*, -00002-of-*)
+    all_shards = []
     if model_dir.exists():
         all_shards = sorted(list(model_dir.glob("*-0000*-of-*.gguf")))
         if not all_shards and p.exists():
@@ -294,13 +306,24 @@ def resolve_strata_model_files(model_path_str: str, mtp_path_str: Optional[str] 
     if not all_shards and p:
         all_shards = [p]
 
-    # If first shard filename indicates multipart GGUF, infer companion shard even before download
-    if len(all_shards) == 1 and "-00001-of-" in all_shards[0].name:
+    # If first shard filename indicates multipart GGUF, infer all companion shards
+    if all_shards and "-00001-of-" in all_shards[0].name:
         s1 = all_shards[0]
-        s2_name = s1.name.replace("-00001-of-", "-00002-of-")
-        s2 = s1.parent / s2_name
-        if s2.exists() or not model_dir.exists():
-            all_shards.append(s2)
+        import re
+        m_parts = re.search(r"-00001-of-(\d{5})\.gguf$", s1.name, re.IGNORECASE)
+        if m_parts:
+            total_shards = int(m_parts.group(1))
+            for i in range(1, total_shards + 1):
+                s_name = s1.name.replace("-00001-of-", f"-{i:05d}-of-")
+                expected_p = s1.parent / s_name
+                if expected_p not in all_shards:
+                    all_shards.append(expected_p)
+            all_shards.sort()
+        else:
+            s2_name = s1.name.replace("-00001-of-", "-00002-of-")
+            s2 = s1.parent / s2_name
+            if s2 not in all_shards:
+                all_shards.append(s2)
 
     res["shards"] = all_shards
     if all_shards:

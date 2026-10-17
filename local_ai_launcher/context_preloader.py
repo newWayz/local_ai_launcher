@@ -573,6 +573,15 @@ def is_strata_model(model_name: Optional[str]) -> bool:
                 aliases = []
             if m_str in aliases:
                 return True
+            m_model = v.get("model") or v.get("model_path", "")
+            if m_model:
+                clean_m = m_model.strip().lower().replace("\\", "/")
+                target_p = m_str.replace("\\", "/")
+                if (clean_m == target_p or
+                    Path(clean_m).name == Path(target_p).name or
+                    target_p.endswith(clean_m) or
+                    clean_m.endswith(target_p)):
+                    return True
     except Exception:
         pass
     try:

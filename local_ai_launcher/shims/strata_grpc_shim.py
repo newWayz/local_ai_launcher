@@ -108,10 +108,12 @@ class StrataServicer(BaseBackendServicer):
         ple_shard = resolved["ple_shard"]
         mtp_dir = resolved["mtp_dir"]
         pack_dir = resolved["pack_dir"]
+        all_shards = resolved.get("shards") or ([first_shard] if first_shard else [])
 
-        if not first_shard or not first_shard.exists():
+        shards_missing = any(not s.exists() for s in all_shards)
+        if not first_shard or shards_missing:
             from local_ai_launcher.backends.model_installer import ensure_strata_model_installed
-            logger.info(f"[strata] First shard not found on disk ({first_shard}). Checking auto-installation...")
+            logger.info(f"[strata] Missing model shard(s) detected for {model_name or target_path}. Checking auto-installation...")
             ok_installed = ensure_strata_model_installed(model_name or target_path)
             if ok_installed:
                 resolved = resolve_strata_model_files(target_path, mtp_path_str=target_mtp)
@@ -119,11 +121,14 @@ class StrataServicer(BaseBackendServicer):
                 ple_shard = resolved["ple_shard"]
                 mtp_dir = resolved["mtp_dir"]
                 pack_dir = resolved["pack_dir"]
+                all_shards = resolved.get("shards") or ([first_shard] if first_shard else [])
 
-        if not first_shard or not first_shard.exists():
+        missing_shards = [s for s in all_shards if not s.exists()]
+        if not first_shard or not first_shard.exists() or missing_shards:
+            missing_names = ", ".join(str(s) for s in missing_shards) if missing_shards else str(first_shard)
             return backend_pb2.Result(
                 success=False,
-                message=f"Model shard file not found: {first_shard}"
+                message=f"Model shard file not found: {missing_names}"
             )
 
         # Prepare pack if not built

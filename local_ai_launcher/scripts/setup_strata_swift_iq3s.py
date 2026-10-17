@@ -21,6 +21,13 @@ def log(msg: str):
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}", flush=True)
 
 def find_hf_cli():
+    candidates = [
+        WORKSPACE / ".venv" / "Scripts" / "hf.exe",
+        WORKSPACE / ".venv" / "Scripts" / "huggingface-cli.exe",
+    ]
+    for c in candidates:
+        if c.exists():
+            return str(c)
     for name in ["hf.exe", "hf", "huggingface-cli.exe", "huggingface-cli"]:
         w = shutil.which(name)
         if w:
@@ -103,7 +110,7 @@ def link_strata_rt():
     if source_rt.exists():
         target_rt.parent.mkdir(parents=True, exist_ok=True)
         try:
-            shutil.copytree(str(source_rt), str(target_rt))
+            shutil.copytree(str(source_rt), str(target_rt), dirs_exist_ok=True)
             log(f"Copied shared Strata MTP runtime pack to {target_rt}")
         except Exception as e:
             log(f"Notice: unable to copy shared rt: {e}")
