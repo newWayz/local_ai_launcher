@@ -291,16 +291,26 @@ class OmpAdapter(HarnessAdapter):
         self.omp_exe = self._resolve_executable()
 
     def _resolve_executable(self) -> Path:
-        if (self.node_bin / "omp.cmd").exists():
-            return self.node_bin / "omp.cmd"
-        if (self.local_bin / "omp.cmd").exists():
-            return self.local_bin / "omp.cmd"
-        if (self.venv_dir / "Scripts" / "omp.exe").exists():
-            return self.venv_dir / "Scripts" / "omp.exe"
-        which_path = shutil.which("omp")
-        if which_path:
-            return Path(which_path)
-        return Path("omp")
+        bin_names = ["omp.cmd", "omp.ps1", "omp.exe", "omp"] if sys.platform == "win32" else ["omp"]
+        search_dirs = [
+            self.node_bin,
+            self.local_bin,
+            AI_WORKSPACE_DIR / "bin",
+            self.venv_dir / ("Scripts" if sys.platform == "win32" else "bin"),
+        ]
+        for s_dir in search_dirs:
+            for b_name in bin_names:
+                cand = s_dir / b_name
+                if cand.is_file():
+                    return cand
+
+        for b_name in bin_names:
+            which_path = shutil.which(b_name)
+            if which_path:
+                return Path(which_path)
+
+        default_exe = "omp.cmd" if sys.platform == "win32" else "omp"
+        return Path(default_exe)
 
     def get_needed_libs(self):
         return []
@@ -366,11 +376,11 @@ class OmpAdapter(HarnessAdapter):
         sub_env['OPENAI_API_KEY'] = 'dummy'
         sub_env['npm_config_allow_git'] = 'all'
 
+        self.omp_exe = self._resolve_executable()
         is_installed = (
-            (self.node_bin / "omp.cmd").exists()
-            or (self.local_bin / "omp.cmd").exists()
-            or (self.venv_dir / "Scripts" / "omp.exe").exists()
-            or (shutil.which("omp") is not None)
+            self.omp_exe.is_file()
+            if self.omp_exe.is_absolute()
+            else (shutil.which(str(self.omp_exe)) is not None)
         )
 
         if is_installed:
@@ -418,14 +428,33 @@ class OmpAdapter(HarnessAdapter):
                         env=sub_env
                     )
                     logger.info("  -> Oh My Pi coding harness installed successfully.")
-                    # Sync trampolines to node_bin if available
-                    if (self.local_bin / "omp.cmd").exists() and self.node_bin.exists():
+                    # Sync trampolines and bun executable across node_bin and local_bin
+                    exe_name = "bun.exe" if sys.platform == "win32" else "bun"
+                    if (self.node_bin / exe_name).exists() and self.local_bin.exists():
                         try:
-                            shutil.copy2(self.local_bin / "omp.cmd", self.node_bin / "omp.cmd")
-                            if (self.local_bin / "omp.ps1").exists():
-                                shutil.copy2(self.local_bin / "omp.ps1", self.node_bin / "omp.ps1")
+                            nm_bun = self.local_bin / exe_name
+                            if not nm_bun.exists():
+                                shutil.copy2(self.node_bin / exe_name, nm_bun)
+                                if sys.platform != "win32":
+                                    os.chmod(nm_bun, 0o755)
                         except Exception:
                             pass
+                    for cand_bin in ["omp.cmd", "omp.ps1", "omp"]:
+                        src = self.local_bin / cand_bin
+                        if src.exists() and self.node_bin.exists():
+                            try:
+                                dest = self.node_bin / cand_bin
+                                shutil.copy2(src, dest)
+                                if sys.platform != "win32":
+                                    os.chmod(dest, 0o755)
+                            except Exception:
+                                pass
+                        if src.exists() and sys.platform != "win32":
+                            try:
+                                os.chmod(src, 0o755)
+                            except Exception:
+                                pass
+
                     self.omp_exe = self._resolve_executable()
                     setup_omp_mcp_config(self.omp_home)
                     self.ensure_extensions_and_skills()
@@ -453,7 +482,11 @@ class OmpAdapter(HarnessAdapter):
         setup_omp_mcp_config(omp_home_resolved)
         self.ensure_extensions_and_skills()
 
-        model_name = resolve_model_name(active_model)
+        model_name = resolve_model_name(
+            active_model,
+            use_omniroute=config.use_omniroute_proxy,
+            omniroute_model=config.omniroute_default_model
+        )
 
         # Pre-evaluate OMP context into KV cache
         from local_ai_launcher.context_preloader import preload_harness_context
@@ -484,12 +517,22 @@ class OmpAdapter(HarnessAdapter):
         env_setup = build_ps_env(omp_env_dict, harness_name="omp")
         logger.info("Starting Oh My Pi coding agent...")
         try:
-            omp_process = start_in_wt_tab(
-                f'powershell.exe -NoExit -Command "chcp 65001 | Out-Null; [console]::InputEncoding=[console]::OutputEncoding=[System.Text.Encoding]::UTF8; {env_setup}{omp_cmd}"',
-                cwd=str(config.harness_start_dir),
-                title="Oh My Pi"
-            )
-            self.processes.append(('Oh My Pi coding agent', omp_process, self.TRACK_CONSOLE_CLOSE))
+            if sys.platform == "win32":
+                omp_process = start_in_wt_tab(
+                    f'powershell.exe -NoExit -Command "chcp 65001 | Out-Null; [console]::InputEncoding=[console]::OutputEncoding=[System.Text.Encoding]::UTF8; {env_setup}{omp_cmd}"',
+                    cwd=str(config.harness_start_dir),
+                    title="Oh My Pi"
+                )
+            else:
+                env_exports = " ".join([f"{k}='{v}'" for k, v in omp_env_dict.items()])
+                run_cmd = f"{env_exports} '{self.omp_exe}' {omp_args}"
+                omp_process = subprocess.Popen(
+                    ["bash", "-c", run_cmd],
+                    cwd=str(config.harness_start_dir),
+                    start_new_session=True
+                )
+            if omp_process is not None:
+                self.processes.append(('Oh My Pi coding agent', omp_process, self.TRACK_CONSOLE_CLOSE))
         except Exception as e:
             logger.error(f"Error starting Oh My Pi: {e}")
 

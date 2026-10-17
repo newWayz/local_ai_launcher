@@ -43,13 +43,15 @@ def safe_extract_zip(zf: zipfile.ZipFile, target_dir: Path) -> None:
             raise RuntimeError(f"Zip slip attempt detected in archive: {member.filename}")
     zf.extractall(target_path)
 
+_scripts_or_bin = "Scripts" if sys.platform == "win32" else "bin"
 WORKSPACE_BIN_DIRS = [
     str(AI_WORKSPACE_DIR / "uv-bin"),
+    str(AI_WORKSPACE_DIR / "bin"),
     str(AI_WORKSPACE_DIR / "node"),
     str(AI_WORKSPACE_DIR / "node_modules" / ".bin"),
-    str(AI_WORKSPACE_DIR / ".venv" / "Scripts"),
+    str(AI_WORKSPACE_DIR / ".venv" / _scripts_or_bin),
     str(config.hermes_dir / "bin"),
-    str(config.hermes_dir / "hermes-agent" / "venv" / "Scripts"),
+    str(config.hermes_dir / "hermes-agent" / "venv" / _scripts_or_bin),
     str(AI_WORKSPACE_DIR / "llama-cpp"),
     str(AI_WORKSPACE_DIR / "go" / "bin"),
     str(AI_WORKSPACE_DIR / "github" / "bin"),
@@ -481,21 +483,56 @@ NPM_SHELL = (sys.platform == 'win32')
 
 def ensure_bun() -> Optional[str]:
     """Ensure Bun executable is available in workspace or PATH for Bun-based agents (e.g. Oh My Pi)."""
+    exe_name = "bun.exe" if sys.platform == 'win32' else "bun"
     node_dir = AI_WORKSPACE_DIR / "node"
     bin_dir = AI_WORKSPACE_DIR / "bin"
     node_modules_bin = AI_WORKSPACE_DIR / "node_modules" / ".bin"
-    for candidate in [node_dir / "bun.exe", bin_dir / "bun.exe", node_modules_bin / "bun.exe"]:
+
+    def _sync_destinations(src: Path) -> str:
+        for t_dir in [node_dir, node_modules_bin, bin_dir]:
+            if t_dir.exists():
+                dest = t_dir / exe_name
+                if not dest.exists():
+                    try:
+                        shutil.copy2(src, dest)
+                        if sys.platform != 'win32':
+                            os.chmod(dest, 0o755)
+                    except Exception:
+                        pass
+                elif sys.platform != 'win32':
+                    try:
+                        os.chmod(dest, 0o755)
+                    except Exception:
+                        pass
+        return str(src)
+
+    for candidate in [node_dir / exe_name, bin_dir / exe_name, node_modules_bin / exe_name]:
         if candidate.exists():
-            return str(candidate)
+            return _sync_destinations(candidate)
 
-    bun_path = shutil.which("bun.exe") or shutil.which("bun")
+    bun_path = shutil.which(exe_name) or shutil.which("bun")
     if bun_path:
-        return bun_path
+        return _sync_destinations(Path(bun_path))
 
-    if sys.platform == 'win32':
-        logger.info("\nBun not found in PATH or workspace. Installing portable Bun for Windows...")
-        node_dir.mkdir(parents=True, exist_ok=True)
+    import platform
+    machine = platform.machine().lower()
+    bun_url = None
+    if sys.platform == 'win32' and machine in ('amd64', 'x86_64'):
         bun_url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-windows-x64.zip"
+    elif sys.platform == 'linux':
+        if machine in ('amd64', 'x86_64'):
+            bun_url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-linux-x64.zip"
+        elif machine in ('aarch64', 'arm64'):
+            bun_url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-linux-aarch64.zip"
+    elif sys.platform == 'darwin':
+        if machine in ('aarch64', 'arm64'):
+            bun_url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-darwin-aarch64.zip"
+        elif machine in ('amd64', 'x86_64'):
+            bun_url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-darwin-x64.zip"
+
+    if bun_url:
+        logger.info(f"\nBun not found in PATH or workspace. Installing portable Bun for {sys.platform} ({machine})...")
+        node_dir.mkdir(parents=True, exist_ok=True)
         zip_path = AI_WORKSPACE_DIR / "bun_temp.zip"
         temp_extract_dir = AI_WORKSPACE_DIR / "bun_extract_temp"
         try:
@@ -505,12 +542,13 @@ def ensure_bun() -> Optional[str]:
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 safe_extract_zip(zip_ref, temp_extract_dir)
 
-            extracted_buns = list(temp_extract_dir.glob("**/bun.exe"))
+            extracted_buns = list(temp_extract_dir.glob(f"**/{exe_name}"))
             if extracted_buns:
-                target_bun = node_dir / "bun.exe"
+                target_bun = node_dir / exe_name
                 shutil.copy2(extracted_buns[0], target_bun)
-                if node_modules_bin.exists():
-                    shutil.copy2(extracted_buns[0], node_modules_bin / "bun.exe")
+                if sys.platform != 'win32':
+                    os.chmod(target_bun, 0o755)
+                _sync_destinations(target_bun)
                 logger.info(f"  -> Portable Bun installed successfully in {target_bun}.")
                 return str(target_bun)
         except Exception as e:

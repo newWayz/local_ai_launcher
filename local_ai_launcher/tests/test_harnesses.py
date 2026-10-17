@@ -3991,6 +3991,112 @@ def test_config_omp_toml_section_flattening():
     assert "custom-skill-1" in flattened["harness_skills"]["omp"]
 
 
+def test_omp_cross_platform_executable_resolution(tmp_path, monkeypatch):
+    """Verify OmpAdapter resolves executable candidates across Windows and POSIX conventions."""
+    from local_ai_launcher.harnesses.omp import OmpAdapter
+
+    adapter = OmpAdapter(str(tmp_path), [])
+    node_dir = tmp_path / "node"
+    nm_bin = tmp_path / "node_modules" / ".bin"
+    bin_dir = tmp_path / "bin"
+    venv_scripts = tmp_path / ".venv" / "Scripts"
+    venv_bin = tmp_path / ".venv" / "bin"
+
+    node_dir.mkdir(parents=True, exist_ok=True)
+    nm_bin.mkdir(parents=True, exist_ok=True)
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    venv_scripts.mkdir(parents=True, exist_ok=True)
+    venv_bin.mkdir(parents=True, exist_ok=True)
+
+    monkeypatch.setattr(adapter, "node_bin", node_dir)
+    monkeypatch.setattr(adapter, "local_bin", nm_bin)
+    monkeypatch.setattr(adapter, "venv_dir", tmp_path / ".venv")
+
+    import sys
+
+    # 1. When binary is in node/
+    test_exe = node_dir / ("omp.cmd" if sys.platform == "win32" else "omp")
+    test_exe.write_text("stub", encoding="utf-8")
+    assert adapter._resolve_executable() == test_exe
+    test_exe.unlink()
+
+    # 2. When binary is in node_modules/.bin/
+    test_exe_nm = nm_bin / ("omp.cmd" if sys.platform == "win32" else "omp")
+    test_exe_nm.write_text("stub", encoding="utf-8")
+    assert adapter._resolve_executable() == test_exe_nm
+    test_exe_nm.unlink()
+
+    # 3. When binary is in venv
+    venv_target = venv_scripts / "omp.exe" if sys.platform == "win32" else venv_bin / "omp"
+    venv_target.write_text("stub", encoding="utf-8")
+    assert adapter._resolve_executable() == venv_target
+    venv_target.unlink()
+
+
+def test_omp_start_process_safety(tmp_path, monkeypatch):
+    """Verify OmpAdapter handles None process gracefully and formats non-Windows start command."""
+    import sys
+    from local_ai_launcher.harnesses.omp import OmpAdapter
+
+    dummy_procs = []
+    adapter = OmpAdapter(str(tmp_path), dummy_procs)
+    fake_omp = tmp_path / "omp.cmd"
+    fake_omp.write_text("stub", encoding="utf-8")
+    monkeypatch.setattr(adapter, "omp_exe", fake_omp)
+    monkeypatch.setattr(config, "harness_start_dir", tmp_path)
+
+    # 1. When start_in_wt_tab returns None (headless/non-interactive)
+    monkeypatch.setattr("local_ai_launcher.harnesses.omp.start_in_wt_tab", lambda cmd, cwd=None, title=None: None)
+    monkeypatch.setattr("sys.platform", "win32")
+    adapter.start("http://localhost:8080/v1", "test-model", launch_tui=True)
+    assert len(dummy_procs) == 0  # Crucial: Must NOT append None!
+
+    # 2. When running on non-Windows platform
+    monkeypatch.setattr("sys.platform", "linux")
+    spawned_cmds = []
+    class DummyProc:
+        def poll(self):
+            return None
+    def mock_popen(args, **kwargs):
+        spawned_cmds.append((args, kwargs))
+        return DummyProc()
+
+    monkeypatch.setattr("subprocess.Popen", mock_popen)
+    adapter.start("http://localhost:8080/v1", "test-model", launch_tui=True)
+    assert len(spawned_cmds) == 1
+    args, kwargs = spawned_cmds[0]
+    assert args[0] == "bash"
+    assert args[1] == "-c"
+    assert "OMP_SKIP_SETUP='1'" in args[2]
+    assert len(dummy_procs) == 1
+    assert dummy_procs[0][0] == "Oh My Pi coding agent"
+
+
+def test_ensure_bun_destinations_sync(tmp_path, monkeypatch):
+    """Verify ensure_bun propagates Bun binary to workspace node and node_modules/.bin."""
+    import local_ai_launcher.environment as env_mod
+
+    fake_ws = tmp_path / "ws"
+    node_dir = fake_ws / "node"
+    nm_bin = fake_ws / "node_modules" / ".bin"
+    node_dir.mkdir(parents=True, exist_ok=True)
+    nm_bin.mkdir(parents=True, exist_ok=True)
+
+    monkeypatch.setattr(env_mod, "AI_WORKSPACE_DIR", fake_ws)
+    import sys
+    exe_name = "bun.exe" if sys.platform == "win32" else "bun"
+
+    # Seed bun in node_dir
+    seed_bun = node_dir / exe_name
+    seed_bun.write_text("bun-binary", encoding="utf-8")
+
+    res = env_mod.ensure_bun()
+    assert res == str(seed_bun)
+    # nm_bin should now also have bun!
+    assert (nm_bin / exe_name).is_file()
+    assert (nm_bin / exe_name).read_text(encoding="utf-8") == "bun-binary"
+
+
 
 
 
