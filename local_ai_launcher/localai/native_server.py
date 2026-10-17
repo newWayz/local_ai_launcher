@@ -1190,6 +1190,8 @@ async def chat_completions(request: Request):
             meta["reasoning_budget_message"] = str(model_reasoning["budget_message"])
     if "reasoning_effort" in body:
         meta["reasoning_effort"] = str(body["reasoning_effort"])
+    elif model_reasoning and ("effort" in model_reasoning or "reasoning_effort" in model_reasoning):
+        meta["reasoning_effort"] = str(model_reasoning.get("effort") or model_reasoning.get("reasoning_effort"))
     if "reasoning_budget" in body:
         meta["reasoning_budget"] = str(body["reasoning_budget"])
     if "chat_template_kwargs" in body:
@@ -1843,6 +1845,16 @@ def _convert_anthropic_to_openai_body(body: dict, searxng_tool_name: Optional[st
         openai_body["reasoning_effort"] = reasoning_effort
     elif "reasoning_effort" in body and body["reasoning_effort"]:
         openai_body["reasoning_effort"] = str(body["reasoning_effort"]).lower()
+    else:
+        try:
+            mapping = get_model_backend_mapping()
+            model_info = mapping.get(model_name) or mapping.get(model_name.replace('\\', '/'))
+            model_data = model_info.get("data", {}) if model_info else {}
+            model_reasoning = model_data.get("reasoning", {})
+            if model_reasoning and ("effort" in model_reasoning or "reasoning_effort" in model_reasoning):
+                openai_body["reasoning_effort"] = str(model_reasoning.get("effort") or model_reasoning.get("reasoning_effort")).lower()
+        except Exception:
+            pass
     if reasoning_budget is not None:
         openai_body["reasoning_budget"] = reasoning_budget
 

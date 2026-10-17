@@ -17,6 +17,7 @@ sampling:
   repetition_penalty: 1.0
 reasoning:
   enabled: true
+  effort: xhigh
   format: deepseek
   preserve: true
   budget_tokens: 16384
@@ -39,6 +40,7 @@ engine_args:
     repetition_penalty: 1.0
   reasoning:
     enabled: true
+    effort: xhigh
     format: deepseek
     preserve: true
     budget_tokens: 16384

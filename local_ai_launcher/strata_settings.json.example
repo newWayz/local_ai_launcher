@@ -50,5 +50,8 @@
   "_comment_prompt_cache": "Conversation checkpoints kept between requests in RAM (default: 6, ~118 MB each; 0 = re-read from start)",
   
   "fit_max_tokens": true,
-  "_comment_fit_max_tokens": "Clamp requested max_tokens to context capacity instead of rejecting requests (default: true)"
+  "_comment_fit_max_tokens": "Clamp requested max_tokens to context capacity instead of rejecting requests (default: true)",
+
+  "reasoning_effort": "xhigh",
+  "_comment_reasoning_effort": "Default reasoning effort for requests with none specified ('none', 'low', 'medium', 'high', 'xhigh'; default: 'xhigh')"
 }

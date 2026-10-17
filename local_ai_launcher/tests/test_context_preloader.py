@@ -293,6 +293,9 @@ def test_is_strata_model_detection():
     assert is_strata_model("qwen-38-flash-strata-iq3s") is True
     assert is_strata_model("strata-iq3s") is True
     assert is_strata_model("qwen-strata-iq3s") is True
+    assert is_strata_model("swift-qwen-38-flash-strata-iq3s") is True
+    assert is_strata_model("swift-strata-iq3s") is True
+    assert is_strata_model("swift-vision") is True
     assert is_strata_model("cyber-tiel-coder-35b") is False
     assert is_strata_model(None) is False
 

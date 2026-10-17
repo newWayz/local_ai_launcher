@@ -43,6 +43,13 @@ GGUF_TO_HF_REGISTRY: Dict[str, str] = {
     # Muse Glimmer 30B
     "darkc0de_Muse-Glimmer-30B-heretic-IQ3_M.gguf": "bartowski/Muse-Glimmer-30B-GGUF",
     "mmproj-kquant.gguf": "bartowski/Muse-Glimmer-30B-GGUF",
+    # Strata 125B MoE (SC117 & Swift 1.5)
+    "Qwen3.8-Flash-Next-GSQ-RCO-abliterated-IQ3_S-00001-of-00002.gguf": "SC117/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF",
+    "Qwen3.8-Flash-Next-GSQ-RCO-abliterated-IQ3_S-00002-of-00002.gguf": "SC117/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF",
+    "mmproj-Qwen3.8-Flash-Next-BF16.gguf": "SC117/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF",
+    "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf": "ukisai/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
+    "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf": "ukisai/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
+    "mmproj-Swift-Qwen3.8-Flash-Next-BF16.gguf": "ukisai/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
 }
 
 

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-10-17
+
+### Added
+- **Strata Engine Preset: Swift-1.5 Qwen3.8-Flash-Next IQ3_S** (`ukisai/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-GGUF`):
+  - Model presets `swift-qwen-38-flash-strata-iq3s` (text) and `swift-qwen-38-flash-strata-iq3s-vision` (vision with `mmproj-Swift-Qwen3.8-Flash-Next-BF16.gguf`).
+  - Standardized aliases: `swift-strata-iq3s`, `swift-strata`, `swift-1.5-strata-iq3s`, `swift-1.5-strata`, `swift-vision`, `swift-strata-vision`, `swift-strata-iq3s-vision`.
+  - Automated downloader and pack builder script ([`local_ai_launcher/scripts/setup_strata_swift_iq3s.py`](scripts/setup_strata_swift_iq3s.py)).
+  - LocalAI YAML mappings and shared MTP speculative drafting pack fallback.
+
 ## [2.0.0] - 2026-10-14
 
 ### Added

@@ -815,6 +815,12 @@ def generate_all_model_configs(target_dir: Optional[Path] = None, force: bool = 
             raw_reasoning = m_spec.get("reasoning", {})
             if isinstance(raw_reasoning, dict):
                 reasoning["enabled"] = bool(raw_reasoning.get("enabled", True))
+                if "effort" in raw_reasoning:
+                    reasoning["effort"] = str(raw_reasoning["effort"])
+                elif "reasoning_effort" in raw_reasoning:
+                    reasoning["effort"] = str(raw_reasoning["reasoning_effort"])
+                elif "reasoning_effort" in m_spec:
+                    reasoning["effort"] = str(m_spec["reasoning_effort"])
                 if "format" in raw_reasoning:
                     reasoning["format"] = str(raw_reasoning["format"])
                 if "preserve" in raw_reasoning:

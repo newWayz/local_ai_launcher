@@ -554,8 +554,27 @@ def is_local_claude_native_model(model_name: Optional[str]) -> bool:
 def is_strata_model(model_name: Optional[str]) -> bool:
     """Returns True if the target model or active configuration targets the Strata engine specifically."""
     m_str = str(model_name or "").lower().strip()
+    if not m_str:
+        return False
     if "strata" in m_str:
         return True
+    try:
+        from local_ai_launcher.backends.strata import load_strata_model_registry
+        reg = load_strata_model_registry()
+        for k, v in reg.items():
+            if m_str == k.lower():
+                return True
+            raw_aliases = v.get("aliases") or v.get("alias", [])
+            if isinstance(raw_aliases, str):
+                aliases = [a.strip().lower() for a in raw_aliases.split(",") if a.strip()]
+            elif isinstance(raw_aliases, list):
+                aliases = [str(a).strip().lower() for a in raw_aliases if str(a).strip()]
+            else:
+                aliases = []
+            if m_str in aliases:
+                return True
+    except Exception:
+        pass
     try:
         from local_ai_launcher.presets import load_effective_models_parser
         parser = load_effective_models_parser()

@@ -104,6 +104,7 @@ def test_models_ini_global_inheritance_and_overwrites(tmp_path):
         assert strata_data["sampling"]["top_k"] == 20
         assert strata_data["sampling"]["min_p"] == 0.05
         assert strata_data["reasoning"]["enabled"] is True
+        assert strata_data["reasoning"]["effort"] == "xhigh"
         assert strata_data["reasoning"]["budget_tokens"] == 16384
 
     # 4. Test non-Qwen transformer model inherits global cache_reuse = 256
@@ -314,6 +315,8 @@ def test_strata_models_json_decoupling(tmp_path):
     registry = load_strata_model_registry()
     assert "qwen-38-flash-strata-iq3s" in registry
     assert "qwen-38-flash-strata-iq3s-vision" in registry
+    assert "swift-qwen-38-flash-strata-iq3s" in registry
+    assert "swift-qwen-38-flash-strata-iq3s-vision" in registry
 
     # 2. Alias resolution works without models.ini
     res = resolve_strata_model_files("strata-iq3s")
@@ -326,6 +329,16 @@ def test_strata_models_json_decoupling(tmp_path):
     assert res_vision["first_shard"] is not None
     assert res_vision.get("chat_template_file") is not None
 
+    res_swift = resolve_strata_model_files("swift-strata-iq3s")
+    assert res_swift["first_shard"] is not None
+    assert "Swift-Qwen3.8-Flash-Next" in res_swift["first_shard"].name
+    assert res_swift.get("chat_template_file") is not None
+
+    res_swift_vis = resolve_strata_model_files("swift-vision")
+    assert res_swift_vis["first_shard"] is not None
+    assert res_swift_vis.get("mmproj") is not None
+    assert "mmproj-Swift" in res_swift_vis["mmproj"]
+
     # 3. YAML generation creates primary model and aliases
     yamls = generate_all_model_configs(target_dir=tmp_path, force=True)
     yaml_names = {y.stem for y in yamls}
@@ -333,8 +346,12 @@ def test_strata_models_json_decoupling(tmp_path):
     assert "strata-iq3s" in yaml_names
     assert "qwen-38-flash-strata-iq3" in yaml_names
     assert "qwen-38-flash-strata-iq3s-vision" in yaml_names
+    assert "swift-qwen-38-flash-strata-iq3s" in yaml_names
+    assert "swift-strata-iq3s" in yaml_names
+    assert "swift-qwen-38-flash-strata-iq3s-vision" in yaml_names
+    assert "swift-vision" in yaml_names
 
-    primary_yaml = tmp_path / "qwen-38-flash-strata-iq3s.yaml"
+    primary_yaml = tmp_path / "swift-qwen-38-flash-strata-iq3s.yaml"
     with open(primary_yaml, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f)
     assert data["backend"] == "strata"
@@ -671,7 +688,30 @@ thinking_mode = "high"
     assert cfg_loaded.claude_desktop_thinking_mode_explicit is True
 
 
+def test_strata_reasoning_effort_xhigh_fidelity(tmp_path):
+    """Verify Strata model settings default to xhigh effort across registry, config, and YAML generation."""
+    from local_ai_launcher.backends.strata import load_strata_model_registry, build_strata_config
+    import json
 
+    # 1. strata_models.json registry has effort: xhigh
+    reg = load_strata_model_registry()
+    assert "qwen-38-flash-strata-iq3s" in reg
+    iq3s_spec = reg["qwen-38-flash-strata-iq3s"]
+    assert iq3s_spec["reasoning"]["effort"] == "xhigh"
 
-
-
+    # 2. build_strata_config populates reasoning_effort: xhigh
+    dummy_shard = tmp_path / "dummy-00001-of-00002.gguf"
+    dummy_shard.write_text("dummy", encoding="utf-8")
+    pack_dir = tmp_path / "pack"
+    pack_dir.mkdir(parents=True, exist_ok=True)
+    cfg_file = build_strata_config(
+        model_name="qwen-38-flash-strata-iq3s",
+        first_shard=dummy_shard,
+        ple_shard=None,
+        pack_dir=pack_dir,
+        mtp_dir=None,
+        port=56000
+    )
+    with open(cfg_file, "r", encoding="utf-8") as f:
+        cfg_data = json.load(f)
+    assert cfg_data.get("reasoning_effort") == "xhigh"

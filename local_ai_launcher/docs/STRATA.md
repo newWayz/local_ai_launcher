@@ -50,7 +50,7 @@ resident_budget_gib = 52
 ```
 *(Note: `mmap-experts` and `resident-budget-gib` are intentionally not placed in `models.ini` to ensure compatibility with standard `llama-server` engine variants that do not recognize those flags).*
 
-Engine-level defaults additionally load from `strata_settings.json` / `strata_models.json` (see `backends/strata.py:load_strata_settings` and the `.example` templates; per-model pack presets ship as `strata-*.json`). Initial shard download + pack build: `python local_ai_launcher/scripts/setup_strata_iq3s.py`.
+Engine-level defaults additionally load from `strata_settings.json` / `strata_models.json` (see `backends/strata.py:load_strata_settings` and the `.example` templates; per-model pack presets ship as `strata-*.json`). Initial shard download + pack build: `python local_ai_launcher/scripts/setup_strata_iq3s.py` (or `python local_ai_launcher/scripts/setup_strata_swift_iq3s.py` for Swift 1.5).
 
 ### Mode A: `strata_resident_budget_gib = 52` (Hybrid Resident Budget + Lookahead Prefetch - Recommended)
 - **Mechanism**: Strata copies up to 52 GiB of the hottest experts (ranked by `expert-profile.bin`) directly into pinned host RAM, streams cold experts via `MapViewOfFile` (mmap), and activates background routing lookahead prefetch (`PrefetchVirtualMemory`).

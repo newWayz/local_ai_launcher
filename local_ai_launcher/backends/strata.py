@@ -27,8 +27,8 @@ STRATA_SERVER_PATCH_MARKER = "# lai: chat_template"
 
 
 def patch_strata_server() -> bool:
-    """Apply custom chat template loading support to strata/serve/server.py.
-    Idempotent (marker-guarded). Returns True when patched or already applied, False on
+    """Apply custom chat template loading and xhigh reasoning effort support to strata/serve/server.py.
+    Idempotent. Returns True when patched or already applied, False on
     upstream drift (anchors not found) - callers should warn, never abort."""
     server_py = STRATA_DIR / "serve" / "server.py"
     if not server_py.is_file():
@@ -38,23 +38,33 @@ def patch_strata_server() -> bool:
     except Exception as e:
         logger.warning(f"[strata-patch] cannot read {server_py}: {e}")
         return False
-    if STRATA_SERVER_PATCH_MARKER in src:
-        return True  # already applied
 
-    anchor = '    tpl = tpath / "chat_template.jinja"\n'
-    if src.count(anchor) != 1:
-        logger.debug(f"[strata-patch] anchor not unique in {server_py.name}; server patch skipped.")
-        return False
+    changed = False
+    out = src
 
-    repl = (
-        '    # lai: chat_template from strata config\n'
-        '    tpl_custom = cfg.get("chat_template_file") if cfg.get("use_custom_chat_template", True) else None\n'
-        '    if tpl_custom and tpl_custom != "original" and Path(tpl_custom).is_file():\n'
-        '        tpl = Path(tpl_custom)\n'
-        '    else:\n'
-        '        tpl = tpath / "chat_template.jinja"\n'
-    )
-    out = src.replace(anchor, repl, 1)
+    if STRATA_SERVER_PATCH_MARKER not in out:
+        anchor = '    tpl = tpath / "chat_template.jinja"\n'
+        if out.count(anchor) == 1:
+            repl = (
+                '    # lai: chat_template from strata config\n'
+                '    tpl_custom = cfg.get("chat_template_file") if cfg.get("use_custom_chat_template", True) else None\n'
+                '    if tpl_custom and tpl_custom != "original" and Path(tpl_custom).is_file():\n'
+                '        tpl = Path(tpl_custom)\n'
+                '    else:\n'
+                '        tpl = tpath / "chat_template.jinja"\n'
+            )
+            out = out.replace(anchor, repl, 1)
+            changed = True
+
+    # Permit 'xhigh' in clean_shared_defaults
+    effort_anchor = '            if value not in ("none", "low", "medium", "high"):\n'
+    if effort_anchor in out:
+        out = out.replace(effort_anchor, '            if value not in ("none", "low", "medium", "high", "xhigh"):\n', 1)
+        changed = True
+
+    if not changed:
+        return True
+
     try:
         import ast as _ast
         _ast.parse(out)
@@ -65,7 +75,7 @@ def patch_strata_server() -> bool:
         # Upstream repo uses LF line endings; preserve LF to prevent git diff churn.
         with open(server_py, "w", encoding="utf-8", newline="\n") as f:
             f.write(out.replace("\r\n", "\n"))
-        logger.info("[strata-patch] applied custom chat template support to strata serve server.py")
+        logger.info("[strata-patch] applied custom chat template & xhigh effort support to strata serve server.py")
     except Exception as e:
         logger.warning(f"[strata-patch] cannot write {server_py}: {e}")
         return False
@@ -209,12 +219,21 @@ def resolve_strata_model_files(model_path_str: str, mtp_path_str: Optional[str] 
             cand_tmpl = matched_entry.get("chat_template_file") or matched_entry.get("chat_template")
             if cand_tmpl:
                 res["chat_template_file"] = str(cand_tmpl)
+            cand_mmproj = matched_entry.get("mmproj")
+            if cand_mmproj:
+                res["mmproj"] = str(cand_mmproj)
             cand_model = matched_entry.get("model") or matched_entry.get("model_path")
             if cand_model:
                 cand_p = Path(cand_model)
                 if not cand_p.is_absolute():
                     cand_p = AI_WORKSPACE_DIR / cand_p
                 if cand_p.exists():
+                    p = cand_p
+                elif (cand_p.parent / "IQ3_S" / cand_p.name).exists():
+                    p = cand_p.parent / "IQ3_S" / cand_p.name
+                elif cand_p.parent.name.upper() == "IQ3_S" and (cand_p.parent.parent / cand_p.name).exists():
+                    p = cand_p.parent.parent / cand_p.name
+                else:
                     p = cand_p
             if not mtp_path_str:
                 cand_mtp = matched_entry.get("mtp") or matched_entry.get("mtp_dir")
@@ -232,6 +251,8 @@ def resolve_strata_model_files(model_path_str: str, mtp_path_str: Optional[str] 
                     cand_tmpl = cp.get(s, "chat_template_file", fallback="") or cp.get(s, "chat_template", fallback="")
                     if cand_tmpl:
                         res["chat_template_file"] = cand_tmpl.strip()
+                    if cp.has_option(s, "mmproj"):
+                        res["mmproj"] = cp.get(s, "mmproj").strip()
                     if cp.has_option(s, "model"):
                         cand = cp.get(s, "model").strip()
                         cand_p = Path(cand)
@@ -270,6 +291,17 @@ def resolve_strata_model_files(model_path_str: str, mtp_path_str: Optional[str] 
     else:
         all_shards = [p]
 
+    if not all_shards and p:
+        all_shards = [p]
+
+    # If first shard filename indicates multipart GGUF, infer companion shard even before download
+    if len(all_shards) == 1 and "-00001-of-" in all_shards[0].name:
+        s1 = all_shards[0]
+        s2_name = s1.name.replace("-00001-of-", "-00002-of-")
+        s2 = s1.parent / s2_name
+        if s2.exists() or not model_dir.exists():
+            all_shards.append(s2)
+
     res["shards"] = all_shards
     if all_shards:
         res["first_shard"] = all_shards[0]
@@ -286,7 +318,7 @@ def resolve_strata_model_files(model_path_str: str, mtp_path_str: Optional[str] 
         if mtp_p.exists():
             res["mtp_dir"] = mtp_p
 
-    # Fallback search for strata/rt if not explicitly given
+    # Fallback search for strata/rt if not explicitly given or not found
     if not res["mtp_dir"]:
         candidate_rt = model_dir.parent / "strata" / "rt"
         if candidate_rt.exists():
@@ -295,6 +327,10 @@ def resolve_strata_model_files(model_path_str: str, mtp_path_str: Optional[str] 
             candidate_rt2 = model_dir / "strata" / "rt"
             if candidate_rt2.exists():
                 res["mtp_dir"] = candidate_rt2
+            else:
+                common_rt = AI_WORKSPACE_DIR / "models" / "llama-server" / "SC117" / "Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF" / "strata" / "rt"
+                if common_rt.exists():
+                    res["mtp_dir"] = common_rt
 
     # Define dedicated pack directory
     pack_name = p.stem.lower().replace("-00001-of-00002", "").replace(".gguf", "")
@@ -407,7 +443,8 @@ def build_strata_config(
     use_custom_chat_template: Optional[bool] = None,
     kv_resident: Optional[int] = None,
     vram_reserve_mib: Optional[int] = None,
-    system_ram_kv_cache: Optional[bool] = None
+    system_ram_kv_cache: Optional[bool] = None,
+    reasoning_effort: Optional[str] = None
 ) -> Path:
     """
     Assembles strata-<model>.json configuration for Strata's serve/server.py.
@@ -681,6 +718,24 @@ def build_strata_config(
                 except Exception as e:
                     logger.warning(f"[Strata Backend] Failed to restore original chat template: {e}")
 
+    # Resolve reasoning_effort (from parameter, user settings, or model preset registry)
+    if reasoning_effort is None:
+        reasoning_effort = user_settings.get("reasoning_effort") or user_settings.get("effort")
+    if reasoning_effort is None:
+        try:
+            registry = load_strata_model_registry()
+            matched_spec = registry.get(model_name)
+            if not matched_spec:
+                for k, v in registry.items():
+                    if k.lower() == model_name.lower():
+                        matched_spec = v
+                        break
+            if matched_spec:
+                r_sec = matched_spec.get("reasoning", {}) if isinstance(matched_spec.get("reasoning"), dict) else {}
+                reasoning_effort = r_sec.get("effort") or r_sec.get("reasoning_effort") or matched_spec.get("reasoning_effort")
+        except Exception:
+            pass
+
     cfg = {
         "exe": engine_exe,
         "args": args,
@@ -694,6 +749,8 @@ def build_strata_config(
         "chat_template_file": active_tmpl_desc,
         "use_custom_chat_template": use_custom_chat_template
     }
+    if reasoning_effort:
+        cfg["reasoning_effort"] = str(reasoning_effort).lower()
 
     # Save active config to destination
     target_output_path.parent.mkdir(parents=True, exist_ok=True)

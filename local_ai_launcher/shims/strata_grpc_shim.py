@@ -184,6 +184,12 @@ class StrataServicer(BaseBackendServicer):
             or getattr(config, "strata_system_ram_kv_cache", False)
         )
 
+        reasoning_effort_val = (
+            engine_args.get("reasoning_effort")
+            or (engine_args.get("reasoning", {}).get("effort") if isinstance(engine_args.get("reasoning"), dict) else None)
+            or strata_user_cfg.get("reasoning_effort")
+        )
+
         ctx_size = getattr(request, "ContextSize", 262144) or strata_user_cfg.get("max_context", 262144) or 262144
         cfg_path = build_strata_config(
             model_name=model_name,
@@ -201,7 +207,8 @@ class StrataServicer(BaseBackendServicer):
             use_custom_chat_template=use_custom_tmpl,
             kv_resident=kv_resident_val,
             vram_reserve_mib=vram_reserve_val,
-            system_ram_kv_cache=bool(sys_ram_kv_val)
+            system_ram_kv_cache=bool(sys_ram_kv_val),
+            reasoning_effort=reasoning_effort_val
         )
 
         try:
