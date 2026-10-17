@@ -55,6 +55,8 @@ WORKSPACE_BIN_DIRS = [
     str(AI_WORKSPACE_DIR / "llama-cpp"),
     str(AI_WORKSPACE_DIR / "go" / "bin"),
     str(AI_WORKSPACE_DIR / "github" / "bin"),
+    str(AI_WORKSPACE_DIR / ".herdr" / "bin"),
+    str(AI_WORKSPACE_DIR / "tools" / "herdr"),
 ]
 
 
@@ -241,6 +243,9 @@ def setup_windows_environment_variables():
         'CODEX_HOME': str(AI_WORKSPACE_DIR / '.codex'),
         'CLAUDE_CONFIG_DIR': str(AI_WORKSPACE_DIR / '.claude'),
         'ORCA_USER_DATA_PATH': str(AI_WORKSPACE_DIR / 'orca' / 'data'),
+        'HERDR_HOME': str(AI_WORKSPACE_DIR / '.herdr'),
+        'HERDR_CONFIG_PATH': str(AI_WORKSPACE_DIR / '.herdr' / 'config.toml'),
+        'HERDR_DATA_PATH': str(AI_WORKSPACE_DIR / '.herdr' / 'data'),
         'GEMINI_DIR': gemini_dir_str,
         'MY_PI_PROJECT_SKILLS': '0',
     }
@@ -251,6 +256,11 @@ def setup_windows_environment_variables():
     if user_home.exists():
         ensure_directory_junction(user_home / ".gemini" / "antigravity-cli", AI_WORKSPACE_DIR / ".gemini" / "antigravity-cli")
         ensure_directory_junction(user_home / ".gemini" / "config", AI_WORKSPACE_DIR / ".gemini" / "config")
+        ensure_directory_junction(user_home / ".herdr", AI_WORKSPACE_DIR / ".herdr")
+        ensure_directory_junction(user_home / ".config" / "herdr", AI_WORKSPACE_DIR / ".herdr")
+    appdata_env = os.environ.get("APPDATA")
+    if appdata_env:
+        ensure_directory_junction(Path(appdata_env) / "herdr", AI_WORKSPACE_DIR / ".herdr")
     
     ps_commands = []
     for var, val in user_vars.items():

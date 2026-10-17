@@ -95,6 +95,13 @@ DEFAULT_SUITES: Dict[str, Dict[str, Any]] = {
             ("orchestration", "skills/orchestration"),
         ],
     },
+    "herdr": {
+        "git": "https://github.com/herdrdev/herdr.git",
+        "branch": "main",
+        "router_subpath": "skills/herdr",
+        "expose_name": "herdr",
+        "description": "Operate Herdr multiplexer, session manager, and multi-agent coordination.",
+    },
     "humanizer": {
         "git": "https://github.com/blader/humanizer.git",
         "branch": "main",

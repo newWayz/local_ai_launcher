@@ -758,6 +758,22 @@ def build_harness_prefix(harness_name: str, model_name: str) -> Dict[str, Any]:
             "tools": OPENCODE_TOOLS
         }
 
+    elif name == "herdr":
+        agents_context = _load_agents_instructions()
+        system_parts = [
+            "You are an AI coding assistant operating inside Herdr, the multi-agent terminal runtime.",
+            "Always inspect and verify code changes using tests before concluding tasks.",
+        ]
+        if agents_context:
+            system_parts.append(f"\nWorkspace Directives:\n{agents_context}")
+        elif user_context:
+            system_parts.append(f"\nUser Directives:\n{user_context}")
+        system_content = "\n\n".join(system_parts)
+        return {
+            "messages": [{"role": "system", "content": system_content}],
+            "tools": PI_TOOLS
+        }
+
     else:
         # Default fallback prefix
         system_content = "You are an AI coding assistant in a local development environment."

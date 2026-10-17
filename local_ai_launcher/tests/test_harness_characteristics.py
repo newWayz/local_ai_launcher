@@ -30,7 +30,7 @@ from local_ai_launcher.process import preload_default_model_async
 
 def test_harness_specs_registry_integrity():
     """Verify all canonical harnesses are registered with required traits."""
-    for required in ("pi", "omp", "hermes", "deepseek", "claude", "claude-desktop", "opencode", "openlumara", "orca", "t3", "antigravity"):
+    for required in ("pi", "omp", "hermes", "deepseek", "claude", "claude-desktop", "opencode", "openlumara", "orca", "t3", "herdr", "antigravity"):
         spec = get_harness_characteristics(required)
         assert spec is not None, f"Harness '{required}' must be registered"
         assert spec.canonical_name
@@ -42,6 +42,7 @@ def test_harness_aliases_resolution():
     assert get_harness_characteristics("deepseek").canonical_name == "deepseek"
     assert get_harness_characteristics("t3code").canonical_name == "t3"
     assert get_harness_characteristics("t3").canonical_name == "t3"
+    assert get_harness_characteristics("herdr").canonical_name == "herdr"
     assert get_harness_characteristics("claudedesktop").canonical_name == "claude-desktop"
     assert get_harness_characteristics("claude-desktop").canonical_name == "claude-desktop"
     assert get_harness_characteristics("claudecode").canonical_name == "claude"
@@ -60,6 +61,7 @@ def test_meta_harness_identification():
     assert is_meta_harness("orca") is True
     assert is_meta_harness("t3") is True
     assert is_meta_harness("t3code") is True
+    assert is_meta_harness("herdr") is True
 
     # Non-meta harnesses
     assert is_meta_harness("pi") is False
@@ -84,6 +86,7 @@ def test_cli_harness_identification():
     assert is_cli_harness("claude") is True
     assert is_cli_harness("openlumara") is True
     assert is_cli_harness("opencode") is True
+    assert is_cli_harness("herdr") is True
 
     # GUI applications
     assert is_cli_harness("claudedesktop") is False
@@ -95,9 +98,9 @@ def test_cli_harness_identification():
 
 
 def test_offline_capability_across_engines():
-    """Verify offline capability rules: Pi/Hermes/DSH/OMP are always offline, Claude requires Strata."""
+    """Verify offline capability rules: Pi/Hermes/DSH/OMP/Herdr are always offline, Claude requires Strata."""
     # Always offline capable
-    for h in ("pi", "omp", "hermes", "deepseek", "dsh", "opencode", "orca", "t3"):
+    for h in ("pi", "omp", "hermes", "deepseek", "dsh", "opencode", "orca", "t3", "herdr"):
         assert is_offline_capable(h, model_name="any-model") is True
 
     # Cloud only
@@ -567,6 +570,65 @@ def test_omp_harness_characteristics_distinct_from_pi():
     assert resolve_meta_harness_inner_cli_harness(["t3", "omp", "pi"]) == "omp"
     assert resolve_server_preloaded_harness(["t3", "pi", "omp"]) == "pi"
     assert resolve_meta_harness_inner_cli_harness(["t3", "pi", "omp"]) == "pi"
+
+
+def test_herdr_meta_harness_characteristics():
+    """Verify Herdr is registered as an ADE meta-harness and follows meta-harness routing rules."""
+    herdr_spec = get_harness_characteristics("herdr")
+    assert herdr_spec is not None
+    assert herdr_spec.canonical_name == "herdr"
+    assert herdr_spec.is_meta_harness is True
+    assert herdr_spec.is_cli is True
+    assert herdr_spec.offline_support == "always"
+
+    # Rule 1: resolve_server_preloaded_harness skips meta-harnesses (including herdr)
+    assert resolve_server_preloaded_harness(["herdr", "pi"]) == "pi"
+    assert resolve_server_preloaded_harness(["herdr", "t3", "hermes"]) == "hermes"
+    assert resolve_server_preloaded_harness(["herdr", "omp"]) == "omp"
+    assert resolve_server_preloaded_harness(["orca", "herdr", "deepseek"]) == "deepseek"
+
+    # When only meta-harnesses are present, preloads the leftmost meta-harness's inner CLI harness
+    assert resolve_server_preloaded_harness(["herdr"]) == "pi"
+    assert resolve_server_preloaded_harness(["herdr", "orca"]) == "pi"
+
+    # Rule 2: resolve_meta_harness_inner_cli_harness resolves leftmost non-meta offline CLI harness
+    assert resolve_meta_harness_inner_cli_harness(["herdr", "omp"]) == "omp"
+    assert resolve_meta_harness_inner_cli_harness(["herdr", "hermes", "pi"]) == "hermes"
+    assert resolve_meta_harness_inner_cli_harness(["herdr", "claudedesktop", "pi"]) == "pi"
+    assert resolve_meta_harness_inner_cli_harness(["herdr"]) == "pi"
+
+
+def test_herdr_config_auto_generation(tmp_path, monkeypatch):
+    """Verify setup_herdr_config creates portable config.toml and sets inner CLI agent shortcuts."""
+    from local_ai_launcher.harnesses.herdr import setup_herdr_config
+
+    herdr_home = tmp_path / ".herdr"
+    monkeypatch.setenv("APPDATA", str(tmp_path / "AppData"))
+    monkeypatch.setattr(config, "choose_harness", ["herdr", "hermes", "pi"])
+    monkeypatch.setattr(config, "default_model", "qwen-38-flash-strata-iq3s")
+    monkeypatch.setattr(config, "herdr_data_dir", tmp_path / ".herdr" / "data")
+    monkeypatch.setattr(config, "harness_start_dir", tmp_path / "projects")
+
+    setup_herdr_config(herdr_home, "http://127.0.0.1:8080/v1", "qwen-38-flash-strata-iq3s")
+
+    # Verify portable config.toml exists
+    config_file = herdr_home / "config.toml"
+    assert config_file.exists()
+    content = config_file.read_text(encoding="utf-8")
+    assert "onboarding = false" in content
+    assert 'new_cwd = "follow"' in content
+    assert "resume_agents_on_restore = true" in content
+    # inner_cli is hermes (leftmost non-meta offline CLI harness in ["herdr", "hermes", "pi"])
+    assert "launch default agent (hermes)" in content
+
+    # Verify runtime metadata
+    meta_file = herdr_home / "herdr-runtime.json"
+    assert meta_file.exists()
+    meta = json.loads(meta_file.read_text(encoding="utf-8"))
+    assert meta["defaultInnerCliAgent"] == "hermes"
+    assert meta["activeModel"] == "qwen-38-flash-strata-iq3s"
+    assert meta["openaiBaseUrl"] == "http://127.0.0.1:8080/v1"
+
 
 
 

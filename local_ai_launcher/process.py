@@ -595,6 +595,35 @@ def kill_workspace_orca_processes():
             pass
 
 
+def kill_workspace_herdr_processes():
+    """Terminate lingering workspace-local Herdr server and client processes."""
+    from local_ai_launcher.paths import get_herdr_binary_path
+    herdr_bin = get_herdr_binary_path()
+    if herdr_bin and herdr_bin.exists():
+        try:
+            subprocess.run(
+                [str(herdr_bin), "server", "stop"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0,
+                timeout=5
+            )
+        except Exception:
+            pass
+    if sys.platform == 'win32':
+        for exe in ("herdr.exe",):
+            try:
+                subprocess.run(
+                    ["taskkill", "/F", "/T", "/IM", exe],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                    timeout=5
+                )
+            except Exception:
+                pass
+
+
 def kill_all_launcher_processes():
     """
     Tears down all processes, child processes, ports, and residual binaries started by the launcher.
@@ -651,6 +680,7 @@ def kill_all_launcher_processes():
                 pass
         kill_workspace_orca_processes()
         purge_stale_orca_locks()
+        kill_workspace_herdr_processes()
 
     _close_log_handles()
 
@@ -905,6 +935,8 @@ def start_in_wt_tab(command_str, cwd=None, title=None):
             title = "T3"
         elif "orca" in cmd_lower:
             title = "Orca"
+        elif "herdr" in cmd_lower:
+            title = "Herdr"
         elif "lumara" in cmd_lower:
             title = "OpenLumara"
         elif "claude" in cmd_lower:

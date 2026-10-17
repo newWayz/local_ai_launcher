@@ -64,6 +64,14 @@ expose_subskills = [
     "skills/orchestration"
 ]
 
+[skills.sources.herdr]
+git = "https://github.com/herdrdev/herdr.git"
+branch = "main"
+router_path = "skills/herdr"
+expose_name = "herdr"
+enabled = true
+description = "Operate Herdr multiplexer, session manager, and multi-agent coordination."
+
 [skills.sources.humanizer]
 git = "https://github.com/blader/humanizer.git"
 branch = "main"

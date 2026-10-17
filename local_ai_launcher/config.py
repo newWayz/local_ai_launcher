@@ -23,6 +23,8 @@ from local_ai_launcher.paths import (
     T3_DIR,
     ORCA_DIR,
     ORCA_DATA_DIR,
+    HERDR_DIR,
+    HERDR_DATA_DIR,
     CLAUDE_DIR,
     CLAUDE_LOCAL_DIR,
     CLAUDE_DESKTOP_DIR,
@@ -874,6 +876,7 @@ class LauncherConfig:
         'pi': 'always_install', 'pie': 'always_install', 'hermes': 'always_install', 'opencode': 'never_install',
         'omp': 'always_install', 'oh-my-pi': 'always_install',
         'agy': 'always_install', 'deepseek': 'always_install', 'orca': 'always_install', 't3': 'always_install',
+        'herdr': 'always_install',
         'agy-ide': 'always_install', 'agy-desktop': 'always_install', 'openlumara': 'always_install',
         'antigravity': 'always_install', 'claude': 'always_install', 'claude-code': 'always_install',
         'claude-desktop': 'always_install', 'claudedesktop': 'always_install'
@@ -896,6 +899,7 @@ class LauncherConfig:
         'pi': 'always_update', 'pie': 'never_update', 'hermes': 'always_update', 'opencode': 'always_update',
         'omp': 'always_update', 'oh-my-pi': 'always_update',
         'agy': 'always_update', 'deepseek': 'always_update', 'orca': 'always_update', 't3': 'always_update',
+        'herdr': 'always_update',
         'agy-ide': 'always_update', 'agy-desktop': 'always_update', 'openlumara': 'always_update',
         'antigravity': 'always_update', 'claude': 'always_update', 'claude-code': 'always_update',
         'claude-desktop': 'always_update', 'claudedesktop': 'always_update'
@@ -910,18 +914,18 @@ class LauncherConfig:
     harness_extensions: Dict[str, List[str]] = field(default_factory=lambda: {
         'pi': ["https://github.com/tmdgusya/roach-pi", "npm:donsetch"], 'hermes': [], 'pie': [], 'opencode': [], 'agy': [],
         'omp': [], 'oh-my-pi': [],
-        'deepseek': [], 'orca': [], 't3': [], 'agy-ide': [], 'agy-desktop': [], 'openlumara': [],
+        'deepseek': [], 'orca': [], 't3': [], 'herdr': [], 'agy-ide': [], 'agy-desktop': [], 'openlumara': [],
         'antigravity': [], 'claude': [], 'claude-desktop': []
     })
     harness_plugins: Dict[str, List[str]] = field(default_factory=lambda: {
         'deepseek': ["github:dondai44423/donsetch-dsh"], 'hermes': [], 'pie': [], 'opencode': [], 'agy': [],
-        'pi': [], 'omp': [], 'oh-my-pi': [], 'orca': [], 't3': [], 'agy-ide': [], 'agy-desktop': [], 'openlumara': [],
+        'pi': [], 'omp': [], 'oh-my-pi': [], 'orca': [], 't3': [], 'herdr': [], 'agy-ide': [], 'agy-desktop': [], 'openlumara': [],
         'antigravity': [], 'claude': [], 'claude-desktop': []
     })
     harness_skills: Dict[str, List[str]] = field(default_factory=lambda: {
         'pi': ["https://github.com/DietrichGebert/ponytail"], 'hermes': [], 'pie': [], 'opencode': [], 'agy': [],
         'omp': [], 'oh-my-pi': [],
-        'deepseek': [], 'orca': [], 't3': [], 'agy-ide': [], 'agy-desktop': [], 'openlumara': [],
+        'deepseek': [], 'orca': [], 't3': [], 'herdr': [], 'agy-ide': [], 'agy-desktop': [], 'openlumara': [],
         'antigravity': [], 'claude': [], 'claude-desktop': []
     })
     
@@ -1190,6 +1194,8 @@ class LauncherConfig:
         self.t3_dir = T3_DIR
         self.orca_dir = ORCA_DIR
         self.orca_data_dir = ORCA_DATA_DIR
+        self.herdr_dir = HERDR_DIR
+        self.herdr_data_dir = HERDR_DATA_DIR
         self.github_dir = GITHUB_DIR
         self.agy_ide_dir = AGY_IDE_DIR
         self.agy_desktop_dir = AGY_DESKTOP_DIR
@@ -1755,6 +1761,7 @@ class MnemosyneAppConfig:
     omp_config_dir: Path = OMP_DIR
     t3_config_dir: Path = T3_DIR
     orca_config_dir: Path = ORCA_DIR
+    herdr_config_dir: Path = HERDR_DIR
     agy_ide_config_dir: Path = AGY_IDE_DIR
     agy_desktop_config_dir: Path = AGY_DESKTOP_DIR
     claude_config_dir: Path = CLAUDE_DIR
@@ -1785,6 +1792,14 @@ class MnemosyneAppConfig:
     @property
     def orca_data_dir(self) -> Path:
         return AI_WORKSPACE_DIR / "orca" / "data"
+
+    @property
+    def herdr_dir(self) -> Path:
+        return self.herdr_config_dir
+
+    @property
+    def herdr_data_dir(self) -> Path:
+        return AI_WORKSPACE_DIR / ".herdr" / "data"
         
     @property
     def agy_ide_dir(self) -> Path:

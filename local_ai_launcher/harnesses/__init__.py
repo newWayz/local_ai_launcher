@@ -44,6 +44,7 @@ from local_ai_launcher.harnesses.llama_server_ui import LsAdapter
 from local_ai_launcher.harnesses.deepseek import DeepseekAdapter
 from local_ai_launcher.harnesses.orca import OrcaAdapter
 from local_ai_launcher.harnesses.t3 import T3Adapter
+from local_ai_launcher.harnesses.herdr import HerdrAdapter, setup_herdr_config
 from local_ai_launcher.harnesses.openlumara import OpenLumaraAdapter
 from local_ai_launcher.harnesses.claude import (
     ClaudeAdapter,
@@ -74,6 +75,7 @@ HARNESS_REGISTRY = {
     "orca": OrcaAdapter,
     "t3": T3Adapter,
     "t3code": T3Adapter,
+    "herdr": HerdrAdapter,
     "openlumara": OpenLumaraAdapter,
     "lumara": OpenLumaraAdapter,
     "antigravity": AntigravityAdapter,

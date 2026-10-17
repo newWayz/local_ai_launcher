@@ -397,14 +397,20 @@ def start_proxy(processes, target_llm_url):
 
 
 def prepare_harness_targets(selected_harnesses):
-    """Expands selected harnesses with required auxiliary harness dependencies (e.g. for Orca ADE)."""
+    """Expands selected harnesses with required auxiliary harness dependencies (e.g. for Orca ADE and Herdr)."""
     orca_selected = "orca" in selected_harnesses
+    herdr_selected = "herdr" in selected_harnesses
     harnesses_to_run = list(selected_harnesses)
     if orca_selected:
         for aux in ("pi", "hermes", "openlumara"):
             if aux in HARNESS_REGISTRY and aux not in harnesses_to_run:
                 orca_idx = harnesses_to_run.index("orca")
                 harnesses_to_run.insert(orca_idx, aux)
+    if herdr_selected:
+        for aux in ("pi", "hermes", "omp"):
+            if aux in HARNESS_REGISTRY and aux not in harnesses_to_run:
+                herdr_idx = harnesses_to_run.index("herdr")
+                harnesses_to_run.insert(herdr_idx, aux)
     return harnesses_to_run
 
 
@@ -495,6 +501,7 @@ def start_harness_preflight_async(selected_harnesses, processes) -> Optional[Har
 def run_harnesses(processes, selected_harnesses, active_model_url, llm_thread):
     global _active_harness_preflight
     orca_selected = "orca" in selected_harnesses
+    herdr_selected = "herdr" in selected_harnesses
 
     # Check if a matching concurrent pre-flight session was already initiated
     session = None
@@ -546,7 +553,8 @@ def run_harnesses(processes, selected_harnesses, active_model_url, llm_thread):
 
         adapter = adapters[h_name]
         is_aux_for_orca = orca_selected and (h_name not in selected_harnesses or h_name in ("openlumara", "lumara"))
-        if is_aux_for_orca:
+        is_aux_for_herdr = herdr_selected and (h_name not in selected_harnesses)
+        if is_aux_for_orca or is_aux_for_herdr:
             if h_name == "pi":
                 adapter.start(active_model_url, config.default_model, launch_tui=False)
             elif h_name == "hermes":

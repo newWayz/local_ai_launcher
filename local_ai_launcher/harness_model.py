@@ -199,6 +199,14 @@ HARNESS_SPECS: Dict[str, HarnessCharacteristics] = {
         offline_support="always",
         description="T3 Code agent control surface (ADE meta-harness)."
     ),
+    "herdr": HarnessCharacteristics(
+        canonical_name="herdr",
+        aliases=("herdr",),
+        is_meta_harness=True,  # Meta-harness capable of hosting Pi, Hermes, Claude, OpenCode, Trae inside
+        is_cli=True,           # Terminal runtime multiplexer CLI/TUI
+        offline_support="always",
+        description="Herdr terminal multiplexer and multi-agent operations runtime (ADE meta-harness)."
+    ),
     "antigravity": HarnessCharacteristics(
         canonical_name="antigravity",
         aliases=("antigravity", "agy", "agy-ide", "agy-desktop"),

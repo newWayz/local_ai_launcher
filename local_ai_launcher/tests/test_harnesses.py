@@ -9,6 +9,7 @@ from local_ai_launcher.config import config, LauncherConfig, MnemosyneAppConfig
 from local_ai_launcher.harnesses import HARNESS_REGISTRY
 from local_ai_launcher.harnesses.orca import OrcaAdapter, setup_orca_config
 from local_ai_launcher.harnesses.t3 import T3Adapter, setup_t3_config
+from local_ai_launcher.harnesses.herdr import HerdrAdapter, setup_herdr_config
 from local_ai_launcher.harnesses.claude import ClaudeAdapter
 
 
@@ -28,32 +29,42 @@ def test_harness_registry_contains_orca_and_t3():
     assert HARNESS_REGISTRY["t3"] is T3Adapter
     assert "t3code" in HARNESS_REGISTRY
     assert HARNESS_REGISTRY["t3code"] is T3Adapter
+    assert "herdr" in HARNESS_REGISTRY
+    assert HARNESS_REGISTRY["herdr"] is HerdrAdapter
 
 
 def test_config_contains_orca_and_t3_defaults():
     cfg = LauncherConfig()
     assert "orca" in cfg.harness_install_behaviors
     assert "t3" in cfg.harness_install_behaviors
+    assert "herdr" in cfg.harness_install_behaviors
     assert "orca" in cfg.harness_update_behaviors
     assert "t3" in cfg.harness_update_behaviors
+    assert "herdr" in cfg.harness_update_behaviors
     assert "orca" in cfg.harness_extensions
     assert "t3" in cfg.harness_extensions
+    assert "herdr" in cfg.harness_extensions
     assert "orca" in cfg.harness_skills
     assert "t3" in cfg.harness_skills
+    assert "herdr" in cfg.harness_skills
     assert hasattr(cfg, "t3_port")
     assert cfg.t3_port == 3773
     assert hasattr(config, "t3_dir")
     assert hasattr(config, "orca_dir")
+    assert hasattr(config, "herdr_dir")
 
 
 def test_mnemosyne_app_config_has_dirs():
     mcfg = MnemosyneAppConfig()
     assert hasattr(mcfg, "t3_config_dir")
     assert hasattr(mcfg, "orca_config_dir")
+    assert hasattr(mcfg, "herdr_config_dir")
     assert hasattr(mcfg, "t3_dir")
     assert hasattr(mcfg, "orca_dir")
+    assert hasattr(mcfg, "herdr_dir")
     assert mcfg.t3_dir == mcfg.t3_config_dir
     assert mcfg.orca_dir == mcfg.orca_config_dir
+    assert mcfg.herdr_dir == mcfg.herdr_config_dir
 
 
 def test_t3_auto_configuration(tmp_path, monkeypatch):
@@ -349,13 +360,90 @@ def test_orca_config_agent_default_env_pi(tmp_path, monkeypatch):
 def test_adapter_instantiations(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "t3_dir", tmp_path / ".t3")
     monkeypatch.setattr(config, "orca_dir", tmp_path / ".orca")
+    monkeypatch.setattr(config, "herdr_dir", tmp_path / ".herdr")
     dummy_processes = []
     orca = OrcaAdapter("test_root", dummy_processes)
     t3 = T3Adapter("test_root", dummy_processes)
+    herdr = HerdrAdapter("test_root", dummy_processes)
     assert orca.name == "orca"
     assert t3.name == "t3"
+    assert herdr.name == "herdr"
     assert orca.install_behavior == "always_install"
     assert t3.install_behavior == "always_install"
+    assert herdr.install_behavior == "always_install"
+
+
+def test_herdr_config_and_adapter(tmp_path, monkeypatch):
+    test_start_dir = tmp_path / "workspace"
+    test_start_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(config, "harness_start_dir", test_start_dir)
+    monkeypatch.setattr(config, "choose_harness", ["herdr", "pi"])
+    monkeypatch.setenv("APPDATA", str(tmp_path / "appdata"))
+
+    herdr_home = tmp_path / ".herdr"
+    setup_herdr_config(herdr_home, "http://localhost:8080/v1", "test-model-123")
+
+    config_file = herdr_home / "config.toml"
+    assert config_file.exists()
+    content = config_file.read_text(encoding="utf-8")
+    assert "onboarding = false" in content
+    assert "resume_agents_on_restore = true" in content
+    assert "launch default agent (pi)" in content
+
+    runtime_meta_file = herdr_home / "herdr-runtime.json"
+    assert runtime_meta_file.exists()
+    runtime_data = json.loads(runtime_meta_file.read_text(encoding="utf-8"))
+    assert runtime_data["defaultInnerCliAgent"] == "pi"
+    assert runtime_data["activeModel"] == "test-model-123"
+    assert runtime_data["openaiBaseUrl"] == "http://localhost:8080/v1"
+
+
+def test_herdr_adapter_check_and_bootstrap(tmp_path, monkeypatch):
+    """Verify HerdrAdapter check, install strategies, and binary discovery."""
+    monkeypatch.setattr(config, "herdr_dir", tmp_path / ".herdr")
+    adapter = HerdrAdapter("test_root", [])
+
+    # 1. When not installed and install strategy is never_install
+    adapter.install_behavior = "never_install"
+    monkeypatch.setattr("shutil.which", lambda cmd: None)
+    fake_nonexistent = tmp_path / "nonexistent" / "herdr.exe"
+    monkeypatch.setattr(adapter, "_resolve_executable", lambda: fake_nonexistent)
+    adapter.herdr_exe = fake_nonexistent
+
+    assert adapter.check() is False
+
+    # 2. When binary exists, check returns True
+    fake_bin = tmp_path / ".herdr" / "bin" / ("herdr.exe" if sys.platform == "win32" else "herdr")
+    fake_bin.parent.mkdir(parents=True, exist_ok=True)
+    fake_bin.write_text("binary-stub", encoding="utf-8")
+    monkeypatch.setattr(adapter, "_resolve_executable", lambda: fake_bin)
+    adapter.herdr_exe = fake_bin
+    monkeypatch.setattr(adapter, "_should_update", lambda: False)
+
+    assert adapter.check() is True
+
+
+def test_herdr_adapter_start_env_and_headless(tmp_path, monkeypatch):
+    """Verify HerdrAdapter start configures environment variables and supports headless mode."""
+    test_start_dir = tmp_path / "workspace"
+    test_start_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(config, "harness_start_dir", test_start_dir)
+    monkeypatch.setattr(config, "herdr_dir", tmp_path / ".herdr")
+    monkeypatch.setattr(config, "choose_harness", ["herdr", "pi"])
+
+    procs = []
+    adapter = HerdrAdapter("test_root", procs)
+    fake_bin = tmp_path / ".herdr" / "bin" / ("herdr.exe" if sys.platform == "win32" else "herdr")
+    fake_bin.parent.mkdir(parents=True, exist_ok=True)
+    fake_bin.write_text("binary-stub", encoding="utf-8")
+    adapter.herdr_exe = fake_bin
+
+    # Headless mode should configure settings without starting process
+    adapter.start("http://localhost:8080/v1", "test-model-123", launch_tui=False)
+    assert (tmp_path / ".herdr" / "config.toml").exists()
+    assert (tmp_path / ".herdr" / "herdr-runtime.json").exists()
+    assert len(procs) == 0
+
 
 
 def test_pi_auto_configuration(tmp_path, monkeypatch):

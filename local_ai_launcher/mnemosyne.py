@@ -309,6 +309,20 @@ class AgentConfigurator:
         except Exception as e:
             mnemosyne_logger.warning(f"[CONFIG] Failed to configure Orca: {e}")
 
+        # --- Herdr Meta-Harness Config ---
+        try:
+            from local_ai_launcher.harnesses.herdr import setup_herdr_config
+            setup_herdr_config(
+                getattr(self.config, "herdr_config_dir", getattr(config, "herdr_dir", HERDR_DIR)),
+                f"http://localhost:{LLM_BACKEND_PORT}/v1",
+                config.default_model
+            )
+            mnemosyne_logger.info("[CONFIG] Herdr configuration verified.")
+        except ImportError:
+            mnemosyne_logger.debug("[CONFIG] Herdr harness module not available, skipping.")
+        except Exception as e:
+            mnemosyne_logger.warning(f"[CONFIG] Failed to configure Herdr: {e}")
+
         # --- Oh My Pi (omp) Harness Config ---
         try:
             from local_ai_launcher.harnesses.omp import setup_omp_models_and_auth, setup_omp_mcp_config
@@ -463,7 +477,7 @@ class ProjectSyncService:
                 if local_exclude_path.exists():
                     existing_excludes = local_exclude_path.read_text(encoding="utf-8").splitlines()
 
-                entries_to_exclude = ["USER.md", ".t3", ".orca", ".omp", ".worktreeinclude"]
+                entries_to_exclude = ["USER.md", ".t3", ".orca", ".herdr", ".omp", ".worktreeinclude"]
                 new_excludes = [e for e in entries_to_exclude if e not in existing_excludes]
                 if new_excludes:
                     with open(local_exclude_path, "a", encoding="utf-8") as f:

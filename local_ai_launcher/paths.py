@@ -21,6 +21,8 @@ DSH_DIR = AI_WORKSPACE_DIR / ".dsh"
 T3_DIR = AI_WORKSPACE_DIR / ".t3"
 ORCA_DIR = AI_WORKSPACE_DIR / ".orca"
 ORCA_DATA_DIR = AI_WORKSPACE_DIR / ".orca" / "data"
+HERDR_DIR = AI_WORKSPACE_DIR / ".herdr"
+HERDR_DATA_DIR = AI_WORKSPACE_DIR / ".herdr" / "data"
 CLAUDE_DIR = AI_WORKSPACE_DIR / ".claude"
 CLAUDE_LOCAL_DIR = AI_WORKSPACE_DIR / ".cbox"
 CLAUDE_DESKTOP_DIR = AI_WORKSPACE_DIR / "claude-desktop"
@@ -198,6 +200,59 @@ def get_aside_app_path() -> Optional[Path]:
     return None
 
 
+def get_herdr_binary_path() -> Optional[Path]:
+    """Portably locate the Herdr binary across workspace tools, bin, Cargo home, AppData, or PATH."""
+    bin_name = "herdr.exe" if sys.platform == 'win32' else "herdr"
+    candidates = [
+        AI_WORKSPACE_DIR / "tools" / "herdr" / bin_name,
+        AI_WORKSPACE_DIR / "tools" / "herdr" / "current" / bin_name,
+        AI_WORKSPACE_DIR / "tools" / "herdr" / "target" / "release" / bin_name,
+        AI_WORKSPACE_DIR / "bin" / bin_name,
+        AI_WORKSPACE_DIR / "herdr" / bin_name,
+        AI_WORKSPACE_DIR / ".herdr" / "bin" / bin_name,
+        AI_WORKSPACE_DIR / ".herdr" / bin_name,
+        AI_WORKSPACE_DIR / "cargo" / "bin" / bin_name,
+    ]
+    try:
+        user_home = Path.home()
+        candidates.extend([
+            user_home / ".cargo" / "bin" / bin_name,
+            user_home / ".herdr" / "bin" / bin_name,
+            user_home / ".herdr" / bin_name,
+            user_home / ".local" / "bin" / bin_name,
+        ])
+    except Exception:
+        pass
+
+    if sys.platform == 'win32':
+        local_appdata = os.environ.get("LOCALAPPDATA")
+        if local_appdata:
+            lad = Path(local_appdata)
+            candidates.extend([
+                lad / "Programs" / "herdr" / bin_name,
+                lad / "herdr" / bin_name,
+                lad / "herdr" / "bin" / bin_name,
+            ])
+        appdata = os.environ.get("APPDATA")
+        if appdata:
+            ad = Path(appdata)
+            candidates.extend([
+                ad / "herdr" / "bin" / bin_name,
+                ad / "herdr" / bin_name,
+            ])
+        program_files = os.environ.get("ProgramFiles")
+        if program_files:
+            candidates.append(Path(program_files) / "herdr" / bin_name)
+
+    for c in candidates:
+        if c.exists() and c.is_file():
+            return c
+    which_bin = shutil.which(bin_name) or shutil.which("herdr")
+    if which_bin:
+        return Path(which_bin)
+    return None
+
+
 __all__ = [
     "AI_WORKSPACE_DIR",
     "LOCAL_AI_LAUNCHER_DIR",
@@ -210,6 +265,8 @@ __all__ = [
     "T3_DIR",
     "ORCA_DIR",
     "ORCA_DATA_DIR",
+    "HERDR_DIR",
+    "HERDR_DATA_DIR",
     "CLAUDE_DIR",
     "CLAUDE_LOCAL_DIR",
     "CLAUDE_DESKTOP_DIR",
@@ -246,4 +303,5 @@ __all__ = [
     "get_donsetch_binary_path",
     "get_aside_binary_path",
     "get_aside_app_path",
+    "get_herdr_binary_path",
 ]
