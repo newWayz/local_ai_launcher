@@ -164,40 +164,65 @@ def setup_omp_models_and_auth(
         except Exception as e:
             logger.warning(f"Warning: Could not write OMP config/auth to {target_dir}: {e}")
 
-    # Ensure agent settings.json and settings.yml has correct defaultProvider, defaultModel and enabledModels
+    # Ensure agent config.yml, settings.json, and settings.yml has correct defaultProvider, defaultModel,
+    # and marks setup wizard completed so omp does not intercept startup with its 5-step provider login onboarding.
     settings_data = {
         "defaultProvider": "openai",
         "defaultModel": active_model_name,
-        "enabledModels": ["openai/*", "openai/**"]
+        "enabledModels": ["openai/*", "openai/**"],
+        "setupVersion": 2,
+        "startup": {
+            "setupWizard": False,
+            "showSplash": False,
+            "checkUpdate": False,
+        }
     }
-    settings_file = agent_dir / "settings.json"
-    settings_yml_file = agent_dir / "settings.yml"
-    try:
-        existing = {}
-        if settings_file.exists():
-            try:
-                with open(settings_file, "r", encoding="utf-8") as f:
-                    existing = json.load(f)
-            except Exception:
-                existing = {}
-        if isinstance(existing, dict):
-            existing.update(settings_data)
-            settings_data = existing
-        atomic_write_json(settings_file, settings_data)
-        if yaml is not None:
-            atomic_write_text(settings_yml_file, yaml.dump(settings_data, sort_keys=False, indent=2))
-    except Exception as e:
-        logger.warning(f"Warning: Could not write OMP settings in {settings_file}: {e}")
+    for target_dir in [agent_dir, omp_home]:
+        settings_file = target_dir / "settings.json"
+        config_file = target_dir / "config.yml"
+        settings_yml_file = target_dir / "settings.yml"
+        try:
+            existing = {}
+            for cand in [config_file, settings_file, settings_yml_file]:
+                if cand.exists():
+                    try:
+                        if cand.suffix in (".yml", ".yaml") and yaml is not None:
+                            with open(cand, "r", encoding="utf-8") as f:
+                                loaded = yaml.safe_load(f)
+                                if isinstance(loaded, dict):
+                                    existing.update(loaded)
+                        elif cand.suffix == ".json":
+                            with open(cand, "r", encoding="utf-8") as f:
+                                loaded = json.load(f)
+                                if isinstance(loaded, dict):
+                                    existing.update(loaded)
+                    except Exception:
+                        pass
+            merged = dict(existing)
+            merged.update(settings_data)
+            if "startup" in existing and isinstance(existing["startup"], dict):
+                merged_startup = dict(existing["startup"])
+                merged_startup.update(settings_data["startup"])
+                merged["startup"] = merged_startup
 
-    # Remove stale project-local settings that break model resolution
+            atomic_write_json(settings_file, merged)
+            if yaml is not None:
+                yaml_content = yaml.dump(merged, sort_keys=False, indent=2)
+                atomic_write_text(config_file, yaml_content)
+                atomic_write_text(settings_yml_file, yaml_content)
+        except Exception as e:
+            logger.warning(f"Warning: Could not write OMP settings in {target_dir}: {e}")
+
+    # Remove stale project-local settings that break model resolution or retrigger setup
     for stale_dir in [config.harness_start_dir, PROJECTS_DIR]:
         if stale_dir:
-            stale_settings = Path(stale_dir) / ".omp" / "settings.json"
-            if stale_settings.exists():
-                try:
-                    stale_settings.unlink()
-                except Exception:
-                    pass
+            for fname in ["settings.json", "config.yml", "config.yaml", "settings.yml"]:
+                stale_file = Path(stale_dir) / ".omp" / fname
+                if stale_file.exists():
+                    try:
+                        stale_file.unlink()
+                    except Exception:
+                        pass
 
 
 def setup_omp_mcp_config(omp_home: Path) -> None:
@@ -336,6 +361,8 @@ class OmpAdapter(HarnessAdapter):
         sub_env['OMP_HOME'] = str(omp_home_resolved)
         sub_env['PI_CONFIG_DIR'] = omp_home_resolved.name
         sub_env['PI_CODING_AGENT_DIR'] = str(omp_home_resolved / "agent")
+        sub_env['PI_SKIP_VERSION_CHECK'] = '1'
+        sub_env['OMP_SKIP_SETUP'] = '1'
         sub_env['OPENAI_API_KEY'] = 'dummy'
         sub_env['npm_config_allow_git'] = 'all'
 
@@ -450,6 +477,7 @@ class OmpAdapter(HarnessAdapter):
             'PI_CONFIG_DIR': omp_home_resolved.name,
             'PI_CODING_AGENT_DIR': str(omp_agent_dir),
             'PI_SKIP_VERSION_CHECK': '1',
+            'OMP_SKIP_SETUP': '1',
             'npm_config_allow_git': 'all',
             'FORCE_COLOR': '1',
         }

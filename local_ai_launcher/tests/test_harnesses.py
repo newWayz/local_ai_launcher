@@ -3785,6 +3785,14 @@ def test_omp_auto_configuration(tmp_path, monkeypatch):
     assert settings["defaultProvider"] == "openai"
     assert settings["defaultModel"] == "qwen-test-model"
     assert "openai/*" in settings["enabledModels"]
+    assert settings["setupVersion"] == 2
+    assert settings["startup"]["setupWizard"] is False
+
+    # Verify config.yml exists and has setupVersion & startup
+    config_yml = omp_home / "agent" / "config.yml"
+    assert config_yml.exists()
+    assert "setupVersion: 2" in config_yml.read_text(encoding="utf-8")
+    assert "setupWizard: false" in config_yml.read_text(encoding="utf-8")
 
     # Verify models.json
     models_file = omp_home / "agent" / "models.json"
@@ -3848,6 +3856,7 @@ def test_omp_adapter_executable_and_start(tmp_path, monkeypatch):
     assert "$env:OMP_HOME=" in cmd_str
     assert "$env:OPENAI_BASE_URL=" in cmd_str
     assert "$env:USERPROFILE=" in cmd_str
+    assert "$env:OMP_SKIP_SETUP='1'" in cmd_str
     assert "$env:PI_CONFIG_DIR='.omp'" in cmd_str or "$env:PI_CONFIG_DIR='" + omp_home.name + "'" in cmd_str
     assert ":\\" not in cmd_str.split("$env:PI_CONFIG_DIR=")[1].split(";")[0]
     assert ":/" not in cmd_str.split("$env:PI_CONFIG_DIR=")[1].split(";")[0]

@@ -386,6 +386,7 @@ def setup_t3_config(t3_home: Path, llm_base_url: str, active_model: Optional[str
         {"name": "OMP_HOME", "value": str(AI_WORKSPACE_DIR / ".omp")},
         {"name": "PI_CONFIG_DIR", "value": ".omp"},
         {"name": "PI_CODING_AGENT_DIR", "value": str(AI_WORKSPACE_DIR / ".omp" / "agent")},
+        {"name": "OMP_SKIP_SETUP", "value": "1"},
         {"name": "OPENCODE_CONFIG", "value": omp_config_file.as_posix()},
         {"name": "XDG_DATA_HOME", "value": omp_data_dir.as_posix()},
         {"name": "XDG_CACHE_HOME", "value": omp_cache_dir.as_posix()},
