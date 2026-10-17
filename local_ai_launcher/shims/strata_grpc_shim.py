@@ -110,6 +110,17 @@ class StrataServicer(BaseBackendServicer):
         pack_dir = resolved["pack_dir"]
 
         if not first_shard or not first_shard.exists():
+            from local_ai_launcher.backends.model_installer import ensure_strata_model_installed
+            logger.info(f"[strata] First shard not found on disk ({first_shard}). Checking auto-installation...")
+            ok_installed = ensure_strata_model_installed(model_name or target_path)
+            if ok_installed:
+                resolved = resolve_strata_model_files(target_path, mtp_path_str=target_mtp)
+                first_shard = resolved["first_shard"]
+                ple_shard = resolved["ple_shard"]
+                mtp_dir = resolved["mtp_dir"]
+                pack_dir = resolved["pack_dir"]
+
+        if not first_shard or not first_shard.exists():
             return backend_pb2.Result(
                 success=False,
                 message=f"Model shard file not found: {first_shard}"

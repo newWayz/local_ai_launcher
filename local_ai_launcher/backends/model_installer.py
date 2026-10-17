@@ -155,11 +155,142 @@ def find_model_section(parser: configparser.ConfigParser, model_name: str) -> Op
     return None
 
 
+def find_strata_model_spec(model_name: str) -> Optional[Tuple[str, dict]]:
+    """Locates the model spec in strata_models.json matching model_name or alias."""
+    try:
+        from local_ai_launcher.backends.strata import load_strata_model_registry
+        clean_target = model_name.strip().lower()
+        registry = load_strata_model_registry()
+        for k, v in registry.items():
+            if k.lower() == clean_target:
+                return k, v
+            raw_aliases = v.get("aliases") or v.get("alias", [])
+            if isinstance(raw_aliases, str):
+                aliases = [a.strip().lower() for a in raw_aliases.split(",") if a.strip()]
+            elif isinstance(raw_aliases, list):
+                aliases = [str(a).strip().lower() for a in raw_aliases if str(a).strip()]
+            else:
+                aliases = []
+            if clean_target in aliases:
+                return k, v
+    except Exception as e:
+        logger.debug(f"Notice reading strata model registry: {e}")
+    return None
+
+
+def ensure_strata_model_installed(selected_model_name: str) -> bool:
+    """
+    Verifies and installs missing GGUF shards, mmproj, and packs for a Strata engine model.
+    """
+    match = find_strata_model_spec(selected_model_name)
+    if not match:
+        return True
+
+    sec_name, sec_options = match
+    logger.info(f"Verifying local files for selected Strata model '{selected_model_name}' (preset: [{sec_name}])...")
+
+    from local_ai_launcher.backends.strata import resolve_strata_model_files, ensure_strata_pack
+    resolved = resolve_strata_model_files(selected_model_name)
+
+    files_to_check: List[Path] = []
+    shards = resolved.get("shards") or []
+    if not shards and resolved.get("first_shard"):
+        shards = [resolved["first_shard"]]
+    for s in shards:
+        if s and s not in files_to_check:
+            files_to_check.append(s)
+
+    mmproj_val = sec_options.get("mmproj") or resolved.get("mmproj")
+    if mmproj_val:
+        mm_p = Path(mmproj_val)
+        if not mm_p.is_absolute():
+            mm_p = AI_WORKSPACE_DIR / mm_p
+        if mm_p not in files_to_check:
+            files_to_check.append(mm_p)
+
+    missing = [f for f in files_to_check if not f.exists() or f.stat().st_size == 0]
+    if not missing:
+        # Files are present on disk; verify pack
+        first_shard = resolved.get("first_shard")
+        pack_dir = resolved.get("pack_dir")
+        if first_shard and first_shard.exists() and pack_dir:
+            try:
+                ensure_strata_pack(first_shard, pack_dir)
+            except Exception as e:
+                logger.debug(f"Strata pack verification notice: {e}")
+        return True
+
+    behavior = getattr(config, 'models_install_behavior', 'existing').lower().strip()
+
+    for target_path in missing:
+        filename = target_path.name
+        rel_str = str(target_path).replace("\\", "/")
+        try:
+            rel_str = str(target_path.relative_to(AI_WORKSPACE_DIR)).replace("\\", "/")
+        except Exception:
+            pass
+
+        repo_id = resolve_model_repo(rel_str, sec_options)
+        if not repo_id:
+            logger.warning(f"Notice: Strata file '{rel_str}' is missing, but no Hugging Face repo mapping could be resolved.")
+            return False
+
+        logger.info(f"Notice: Required Strata model file is missing: {rel_str}")
+        logger.info(f"  -> Mapped to Hugging Face repository: {repo_id}")
+
+        if behavior == 'never_install':
+            logger.info(f"  -> Skipping download of '{filename}' as per models_install_behavior='never_install'.")
+            return False
+        elif behavior == 'existing':
+            prompt = f"Selected Strata model file '{filename}' is missing. Download from Hugging Face ({repo_id})? (y/n): "
+            if not prompt_choice(prompt, default='y', timeout=15):
+                logger.info(f"  -> User declined download of '{filename}'.")
+                return False
+
+        success = download_model_file(repo_id, filename, target_path.parent)
+        if not success:
+            logger.error(f"Error: Failed to install required Strata model file '{filename}'.")
+            return False
+
+    # After download, ensure pack and shared MTP are built/linked
+    first_shard = resolved.get("first_shard")
+    pack_dir = resolved.get("pack_dir")
+    if first_shard and first_shard.exists() and pack_dir:
+        try:
+            ensure_strata_pack(first_shard, pack_dir)
+        except Exception as e:
+            logger.warning(f"Notice preparing Strata pack for {selected_model_name}: {e}")
+
+    # Ensure strata/rt is linked if target_dir / strata / rt does not exist
+    if first_shard and first_shard.exists():
+        target_rt = first_shard.parent / "strata" / "rt"
+        if not target_rt.exists():
+            target_rt2 = first_shard.parent.parent / "strata" / "rt"
+            if not target_rt2.exists():
+                common_rt = AI_WORKSPACE_DIR / "models" / "llama-server" / "SC117" / "Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF" / "strata" / "rt"
+                if common_rt.exists():
+                    try:
+                        dest_rt = first_shard.parent / "strata" / "rt" if first_shard.parent.name.upper() != "IQ3_S" else first_shard.parent.parent / "strata" / "rt"
+                        dest_rt.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copytree(str(common_rt), str(dest_rt))
+                        logger.info(f"[strata] Copied shared Strata MTP runtime pack to {dest_rt}")
+                    except Exception as e:
+                        logger.debug(f"[strata] Notice copying shared MTP pack: {e}")
+
+    return True
+
+
 def ensure_single_model_installed(selected_model_name: str) -> bool:
     """
     Verifies and installs ONLY the single model selected via config.py (config.default_model).
     Does NOT download or check all models in models.ini.
+    Supports both models.ini presets and native Strata presets from strata_models.json.
     """
+    # 1. Check Strata model registry first if model name/alias matches Strata
+    strata_spec = find_strata_model_spec(selected_model_name)
+    if strata_spec:
+        return ensure_strata_model_installed(selected_model_name)
+
     from local_ai_launcher.presets import load_effective_models_parser
     try:
         parser = load_effective_models_parser()
@@ -169,7 +300,7 @@ def ensure_single_model_installed(selected_model_name: str) -> bool:
 
     match = find_model_section(parser, selected_model_name)
     if not match:
-        # Not a models.ini model (could be exl3 or freetoken); skip GGUF check
+        # Not a models.ini or strata model (could be exl3 or freetoken); skip GGUF check
         return True
 
     sec_name, sec_options = match

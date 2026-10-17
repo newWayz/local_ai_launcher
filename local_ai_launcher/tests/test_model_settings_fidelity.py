@@ -715,3 +715,51 @@ def test_strata_reasoning_effort_xhigh_fidelity(tmp_path):
     with open(cfg_file, "r", encoding="utf-8") as f:
         cfg_data = json.load(f)
     assert cfg_data.get("reasoning_effort") == "xhigh"
+
+
+def test_ensure_strata_model_installed_portable_download(tmp_path, monkeypatch):
+    """Verify ensure_single_model_installed and ensure_strata_model_installed portably download missing Strata shards."""
+    from local_ai_launcher.backends.model_installer import (
+        find_strata_model_spec,
+        ensure_strata_model_installed,
+        ensure_single_model_installed
+    )
+    from local_ai_launcher.config import config
+    from unittest.mock import patch, MagicMock
+
+    # 1. Spec lookup works for primary name and aliases
+    spec_tuple = find_strata_model_spec("swift-strata")
+    assert spec_tuple is not None
+    assert spec_tuple[0] == "swift-qwen-38-flash-strata-iq3s"
+
+    spec_vision = find_strata_model_spec("swift-vision")
+    assert spec_vision is not None
+    assert spec_vision[0] == "swift-qwen-38-flash-strata-iq3s-vision"
+
+    # 2. Mock download_model_file and ensure_strata_pack to verify missing file handling
+    downloaded_calls = []
+    def mock_download(repo_id, filename, target_dir):
+        downloaded_calls.append((repo_id, filename, target_dir))
+        # Create a dummy file so target_path exists
+        out_f = Path(target_dir) / filename
+        out_f.parent.mkdir(parents=True, exist_ok=True)
+        out_f.write_text("dummy", encoding="utf-8")
+        return True
+
+    monkeypatch.setattr(config, "models_install_behavior", "always_install")
+
+    with patch("local_ai_launcher.backends.model_installer.AI_WORKSPACE_DIR", tmp_path), \
+         patch("local_ai_launcher.backends.strata.AI_WORKSPACE_DIR", tmp_path), \
+         patch("local_ai_launcher.backends.model_installer.download_model_file", side_effect=mock_download), \
+         patch("local_ai_launcher.backends.strata.ensure_strata_pack", return_value=True) as mock_pack:
+        
+        ok = ensure_single_model_installed("swift-strata")
+        assert ok is True
+        assert len(downloaded_calls) >= 2
+        repos = {call[0] for call in downloaded_calls}
+        filenames = {call[1] for call in downloaded_calls}
+        assert "ukisai/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-GGUF" in repos
+        assert "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf" in filenames
+        assert "Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf" in filenames
+        assert mock_pack.called
+
